@@ -1,0 +1,110 @@
+#! /usr/bin/env python3
+
+
+##################
+# IMPORT MODULES #
+##################
+import argparse
+from tqdm import tqdm
+import os
+import itertools
+
+from function import __version__
+from function.tombRaiderFunctions import freqToMemory, zotuToMemory, taxToMemory
+
+
+#########################
+# MODULE mrcaCalculator #
+#########################
+# function to calculate the most recent common ancestor from BLAST
+def mrcaCalculator(args):
+    INPUT = args.input
+
+
+#####################
+# MODULE mrcaMerger #
+#####################
+# function to merge sequences based on the most recent common ancestor ID
+def mrcaMerger(args):
+    INPUT = args.input
+
+
+######################
+# MODULE occurMerger #
+######################
+# function to merge sequences based on co-occurrence patterns
+def occurMerger(args):
+    INPUT = args.input
+
+
+#####################
+# MODULE tombRaider #
+#####################
+# function to merge sequences based on taxon-dependent co-occurrence patterns
+def tombRaider(args):
+    FREQ = args.freq
+    ZOTU = args.zotu
+    TAX = args.tax
+
+## starting print statement
+    print(f'\ntombRaider v{__version__}\nhttps://github.com/gjeunen/tombRaider\n\n')
+
+## read FREQ, ZOTU, and TAX into memory
+    try:
+       with tqdm(total = os.path.getsize(FREQ) + os.path.getsize(ZOTU) + os.path.getsize(TAX), desc = f'Reading Input Files into memory: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
+           freqInputDict, freqTotalCountDict, pbar = freqToMemory(FREQ, pbar)
+           seqInputDict, pbar = zotuToMemory(ZOTU, pbar)
+           taxIdInputDict, taxQcovInputDict, taxPidentInputDict, pbar = taxToMemory(TAX, pbar)
+    except TypeError:
+       print(f'FATAL ERROR: "-f", "--freq" and/or "-z", "--zotu" and/or "-t", "--tax" parameter(s) not provided, aborting analysis...\n')
+       exit()
+    except FileNotFoundError:
+       print(f'FATAL ERROR: {FREQ} and/or {ZOTU} and/or {TAX} file(s) not found, aborting analysis...\n')
+       exit()
+
+## calculate number of unique combinations for tqdm print (x = ((n*n)-n)/2)
+    uniqueCombinations = int(((len(freqTotalCountDict) * len(freqTotalCountDict)) - len(freqTotalCountDict)) / 2)
+
+## determine parent and daughter sequences
+## 1. check accession numbers match
+## 2. check BLAST quality
+## 3. check sequence similarity
+## check if b only appears in samples where a is present
+    with tqdm(total = uniqueCombinations, desc = 'Identifying artefacts: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
+        for a, b in itertools.combinations(freqTotalCountDict.keys(), 2):
+            pbar.update(1)
+            try:
+                if taxIdInputDict[a] != taxIdInputDict[b]:
+                    continue
+                print(a, b, taxIdInputDict[a], taxIdInputDict[b])
+            except KeyError:
+                continue
+
+############
+# ARGPARSE #
+############
+def main():
+    parser = argparse.ArgumentParser(description = 'identify and remove artefact sequences from metabarcoding data')
+    parser.add_argument('--version', action = 'version', version = __version__)
+    subparser = parser.add_subparsers()
+
+    mrcaCalculatorParser = subparser.add_parser('mrcaCalculator', description = 'calculate the most recent common ancestor from BLAST')
+    mrcaCalculatorParser.set_defaults(func = mrcaCalculator)
+    
+    mrcaMergerParser = subparser.add_parser('mrcaMerger', description = 'merge sequences based on the most recent common ancestor ID')
+    mrcaMergerParser.set_defaults(func = mrcaMerger)
+
+    occurMergerParser = subparser.add_parser('occurMerger', description = 'merge sequences based on co-occurrence patterns')
+    occurMergerParser.set_defaults(func = occurMerger)
+
+    tombRaiderParser = subparser.add_parser('tombRaider', description = 'merge sequences based on taxon-dependent co-occurrence patterns')
+    tombRaiderParser.set_defaults(func = tombRaider)
+    tombRaiderParser.add_argument('-f', '--freq', help = 'frequency table input file name', dest = 'freq', type = str)
+    tombRaiderParser.add_argument('-z', '--zotu', help = 'zotu sequence input file name', dest = 'zotu', type = str)
+    tombRaiderParser.add_argument('-t', '--tax', help = 'taxonomy input file name', dest = 'tax', type = str)
+
+    args = parser.parse_args()
+    args.func(args)
+
+if __name__ == '__main__':
+    main()

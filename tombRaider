@@ -8,9 +8,11 @@ import argparse
 from tqdm import tqdm
 import os
 import itertools
+from Bio import pairwise2
+import collections
 
 from function import __version__
-from function.tombRaiderFunctions import freqToMemory, zotuToMemory, taxToMemory
+from function.tombRaiderFunctions import freqToMemory, zotuToMemory, taxToMemory, dictionarySum
 
 
 #########################
@@ -45,6 +47,7 @@ def tombRaider(args):
     FREQ = args.freq
     ZOTU = args.zotu
     TAX = args.tax
+    OUTPUT = args.output
 
 ## starting print statement
     print(f'\ntombRaider v{__version__}\nhttps://github.com/gjeunen/tombRaider\n\n')
@@ -69,16 +72,55 @@ def tombRaider(args):
 ## 1. check accession numbers match
 ## 2. check BLAST quality
 ## 3. check sequence similarity
-## check if b only appears in samples where a is present
+## 4. check if b only appears in samples where a is present
+    toCombineDict = collections.defaultdict(list)
     with tqdm(total = uniqueCombinations, desc = 'Identifying artefacts: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
         for a, b in itertools.combinations(freqTotalCountDict.keys(), 2):
             pbar.update(1)
             try:
                 if taxIdInputDict[a] != taxIdInputDict[b]:
                     continue
-                print(a, b, taxIdInputDict[a], taxIdInputDict[b])
+                if taxPidentInputDict[b] > taxPidentInputDict[a]:
+                    #print(a, b, taxIdInputDict[a], taxIdInputDict[b])
+                    continue
+                alignments = pairwise2.align.globalxx(seqInputDict[a], seqInputDict[b])
+                distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
+                if 100 - (distanceCalculation/ max(len(seqInputDict[a]), len(seqInputDict[b])) * 100) < 85:
+                    continue
+                positiveDetectionB = [k for k, v in freqInputDict[b].items() if v > 0]
+                positiveDetectionA = [k for k, v in freqInputDict[a].items() if v > 0]
+                if not all(item in positiveDetectionA for item in positiveDetectionB):
+                    continue
+                toCombineDict[a].append(b)
             except KeyError:
                 continue
+
+## merge values of parents and daughters
+## remove daughters    
+    newDict = collections.defaultdict(dict)
+    skipDict = {}
+    for item in freqTotalCountDict:
+        if item in skipDict:
+            continue
+        if item not in toCombineDict:
+            newDict[item] = freqInputDict[item]
+        else:
+            dictList = toCombineDict[item]
+            for x in dictList:
+                skipDict[x] = 1
+            dictList.append(item)
+            newDict[item] = dictionarySum(dictList, freqInputDict)
+
+## write to output
+    count = 0
+    with open(OUTPUT, 'w') as outfile:
+        for item in newDict:
+            count += 1
+            if count == 1:
+                title = "\t".join(newDict[item].keys())
+                outfile.write(f'ID\t{title}\n')
+            test = "\t".join(str(value) for value in newDict[item].values())
+            outfile.write(f'{item}\t{test}\n')
 
 ############
 # ARGPARSE #
@@ -102,6 +144,7 @@ def main():
     tombRaiderParser.add_argument('-f', '--freq', help = 'frequency table input file name', dest = 'freq', type = str)
     tombRaiderParser.add_argument('-z', '--zotu', help = 'zotu sequence input file name', dest = 'zotu', type = str)
     tombRaiderParser.add_argument('-t', '--tax', help = 'taxonomy input file name', dest = 'tax', type = str)
+    tombRaiderParser.add_argument('-o', '--output', help = 'frequency table output file name', dest = 'output', type = str)
 
     args = parser.parse_args()
     args.func(args)

@@ -77,5 +77,10 @@ def taxToMemory(TAX, pbar):
             taxPidentInputDict[seqName] = taxPident
     return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, pbar
 
-
+def dictionarySum(dicts, freqInputDict):
+    ret = collections.defaultdict(int)
+    for d in dicts:
+        for k, v in freqInputDict[d].items():
+            ret[k] += v
+    return dict(ret)
     

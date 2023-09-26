@@ -49,6 +49,7 @@ def tombRaider(args):
     TAX = args.tax
     OUTPUT = args.output
     ABUNDANCE = args.abund
+    SIMILARITY = args.similarity
 
 ## starting print statement
     print(f'\ntombRaider v{__version__}\nhttps://github.com/gjeunen/tombRaider\n\n')
@@ -104,8 +105,12 @@ def tombRaider(args):
                     # 4. check sequence similarity
                     alignments = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
                     distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
-                    if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) < 85:
-                        continue
+                    try:
+                        if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) <= SIMILARITY:
+                            continue
+                    except TypeError:
+                        print(f'FATAL ERROR: "-s", "--similarity" parameter not provided, aborting analysis...\n')
+                        exit()
                     if childName not in childParentComboDict and parentName not in childParentComboDict:
                         childParentComboDict[childName] = parentName
                         combinedDict[parentName].append(childName)
@@ -179,6 +184,7 @@ def main():
     tombRaiderParser.add_argument('-t', '--tax', help = 'taxonomy input file name', dest = 'tax', type = str)
     tombRaiderParser.add_argument('-o', '--output', help = 'frequency table output file name', dest = 'output', type = str)
     tombRaiderParser.add_argument('-a', '--abundance', help = 'abundance threshold to consider true detection', dest = 'abund', type = int)
+    tombRaiderParser.add_argument('-s', '--similarity', help = 'similarity threshold needed between child and parent', dest = 'similarity', type = int)
 
     args = parser.parse_args()
     args.func(args)

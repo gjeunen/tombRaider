@@ -150,69 +150,6 @@ def tombRaider(args):
         print(f'{item} identified as parent sequence of: {" + ".join(combinedDict[item])}')
     print()
 
-
-    # for item in combinedDict:
-    #     print(item, combinedDict[item])
-            #print(parentName)
-#         for a, b in itertools.combinations(freqTotalCountDict.keys(), 2):
-#             pbar.update(1)
-#             try:
-#                 if taxIdInputDict[a] != taxIdInputDict[b]:
-#                     continue
-# ## 2. check BLAST quality on percent identity and query coverage
-# # currently only on top blast hit
-#                 if taxPidentInputDict[b] > taxPidentInputDict[a] and taxQcovInputDict[b] > taxQcovInputDict[a]:
-#                     continue
-# ## 3. check if b only appears in samples where a is present
-#                 positiveDetectionB = [k for k, v in freqInputDict[b].items() if v > 1]
-#                 positiveDetectionA = [k for k, v in freqInputDict[a].items() if v > 0]
-#                 # remove negative controls from co-occurrence patterns
-#                 if not all(item in positiveDetectionA for item in positiveDetectionB):
-#                     continue
-# ## 4. check sequence similarity
-#                 alignments = pairwise2.align.globalxx(seqInputDict[a], seqInputDict[b])
-#                 distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
-#                 if 100 - (distanceCalculation/ max(len(seqInputDict[a]), len(seqInputDict[b])) * 100) < 85:
-#                     continue
-#                 toCombineDict[a].append(b)
-#             except KeyError:
-#                 # run taxon-independent approach for NA in BLAST
-#                 continue
-
-#     for item in toCombineDict:
-#         print(item, toCombineDict[item])
-
-
-# ## merge values of parents and daughters
-# ## remove daughters    
-#     newDict = collections.defaultdict(dict)
-#     skipDict = {}
-#     for item in freqTotalCountDict:
-#         if item in skipDict:
-#             continue
-#         if item not in toCombineDict:
-#             newDict[item] = freqInputDict[item]
-#         else:
-#             dictList = toCombineDict[item]
-#             for x in dictList:
-#                 skipDict[x] = 1
-#             dictList.append(item)
-#             newDict[item] = dictionarySum(dictList, freqInputDict)
-
-# ## write to output
-#     count = 0
-#     with open(OUTPUT, 'w') as outfile:
-#         for item in newDict:
-#             count += 1
-#             if count == 1:
-#                 title = "\t".join(newDict[item].keys())
-#                 outfile.write(f'ID\t{title}\n')
-#             test = "\t".join(str(value) for value in newDict[item].values())
-#             outfile.write(f'{item}\t{test}\n')
-    
-#     for item in toCombineDict:
-#         print(item, toCombineDict[item])
-
 ############
 # ARGPARSE #
 ############

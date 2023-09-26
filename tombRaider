@@ -44,10 +44,12 @@ def occurMerger(args):
 #####################
 # function to merge sequences based on taxon-dependent co-occurrence patterns
 def tombRaider(args):
-    FREQ = args.freq
-    ZOTU = args.zotu
-    TAX = args.tax
-    OUTPUT = args.output
+    FREQINPUT = args.freqInput
+    SEQINPUT = args.seqInput
+    TAXINPUT = args.taxInput
+    FREQOUTPUT = args.freqOutput
+    SEQOUTPUT = args.seqOutput
+    TAXOUTPUT = args.taxOutput
     ABUNDANCE = args.abund
     SIMILARITY = args.similarity
 
@@ -56,15 +58,15 @@ def tombRaider(args):
 
 ## read FREQ, ZOTU, and TAX into memory
     try:
-       with tqdm(total = os.path.getsize(FREQ) + os.path.getsize(ZOTU) + os.path.getsize(TAX), desc = f'Reading Input Files into memory: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
-           freqInputDict, freqTotalCountDict, pbar = freqToMemory(FREQ, pbar)
-           seqInputDict, pbar = zotuToMemory(ZOTU, pbar)
-           taxIdInputDict, taxQcovInputDict, taxPidentInputDict, pbar = taxToMemory(TAX, pbar)
+       with tqdm(total = os.path.getsize(FREQINPUT) + os.path.getsize(SEQINPUT) + os.path.getsize(TAXINPUT), desc = f'Reading Input Files into memory: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
+           freqInputDict, freqTotalCountDict, pbar = freqToMemory(FREQINPUT, pbar)
+           seqInputDict, pbar = zotuToMemory(SEQINPUT, pbar)
+           taxIdInputDict, taxQcovInputDict, taxPidentInputDict, pbar = taxToMemory(TAXINPUT, pbar)
     except TypeError:
-       print(f'FATAL ERROR: "-f", "--freq" and/or "-z", "--zotu" and/or "-t", "--tax" parameter(s) not provided, aborting analysis...\n')
+       print(f'FATAL ERROR: "--frequency-input" and/or "--sequence-input" and/or "--taxonomy-input" parameter(s) not provided, aborting analysis...\n')
        exit()
     except FileNotFoundError:
-       print(f'FATAL ERROR: {FREQ} and/or {ZOTU} and/or {TAX} file(s) not found, aborting analysis...\n')
+       print(f'FATAL ERROR: {FREQINPUT} and/or {SEQINPUT} and/or {TAXINPUT} file(s) not found, aborting analysis...\n')
        exit()
 
 ## calculate number of unique combinations for tqdm print (x = ((n*n)-n)/2)
@@ -143,9 +145,9 @@ def tombRaider(args):
             if parentName not in childParentComboDict:
                 newlyUpdatedCountDict[parentName] = newParentDict
 
-## write to output
+## write updated frequency table to output
     count = 0
-    with open(OUTPUT, 'w') as outfile:
+    with open(FREQOUTPUT, 'w') as outfile:
         for item in newlyUpdatedCountDict:
             count += 1
             if count == 1:
@@ -153,6 +155,13 @@ def tombRaider(args):
                 outfile.write(f'ID\t{title}\n')
             test = "\t".join(str(value) for value in newlyUpdatedCountDict[item].values())
             outfile.write(f'{item}\t{test}\n')
+
+## write updated sequence file to output
+    with open(SEQOUTPUT, 'w') as seqoutfile:
+        for item in newlyUpdatedCountDict:
+            seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
+
+## write updated taxonomy file to output
 
 ## write log
     print(f'\nSUMMARY STATISTICS:\nNumber of sequences analysed: {len(seqInputDict)}\nSequences identified as artifacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n\nDETAILED LOG:')
@@ -179,12 +188,14 @@ def main():
 
     tombRaiderParser = subparser.add_parser('tombRaider', description = 'merge sequences based on taxon-dependent co-occurrence patterns')
     tombRaiderParser.set_defaults(func = tombRaider)
-    tombRaiderParser.add_argument('-f', '--freq', help = 'frequency table input file name', dest = 'freq', type = str)
-    tombRaiderParser.add_argument('-z', '--zotu', help = 'zotu sequence input file name', dest = 'zotu', type = str)
-    tombRaiderParser.add_argument('-t', '--tax', help = 'taxonomy input file name', dest = 'tax', type = str)
-    tombRaiderParser.add_argument('-o', '--output', help = 'frequency table output file name', dest = 'output', type = str)
-    tombRaiderParser.add_argument('-a', '--abundance', help = 'abundance threshold to consider true detection', dest = 'abund', type = int)
-    tombRaiderParser.add_argument('-s', '--similarity', help = 'similarity threshold needed between child and parent', dest = 'similarity', type = int)
+    tombRaiderParser.add_argument('--frequency-input', help = 'frequency table input file name', dest = 'freqInput', type = str)
+    tombRaiderParser.add_argument('--sequence-input', help = 'sequence input file name', dest = 'seqInput', type = str)
+    tombRaiderParser.add_argument('--taxonomy-input', help = 'taxonomy input file name', dest = 'taxInput', type = str)
+    tombRaiderParser.add_argument('--frequency-output', help = 'frequency table output file name', dest = 'freqOutput', type = str)
+    tombRaiderParser.add_argument('--sequence-output', help = 'sequence output file name', dest = 'seqOutput', type = str)
+    tombRaiderParser.add_argument('--taxonomy-output', help = 'taxonomy output file name', dest = 'taxOutput', type = str)
+    tombRaiderParser.add_argument('--abundance', help = 'abundance threshold to consider true detection', dest = 'abund', type = int)
+    tombRaiderParser.add_argument('--similarity', help = 'similarity threshold needed between child and parent', dest = 'similarity', type = int)
 
     args = parser.parse_args()
     args.func(args)

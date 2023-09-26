@@ -48,6 +48,7 @@ def tombRaider(args):
     ZOTU = args.zotu
     TAX = args.tax
     OUTPUT = args.output
+    ABUNDANCE = args.abund
 
 ## starting print statement
     print(f'\ntombRaider v{__version__}\nhttps://github.com/gjeunen/tombRaider\n\n')
@@ -68,7 +69,7 @@ def tombRaider(args):
 ## calculate number of unique combinations for tqdm print (x = ((n*n)-n)/2)
     uniqueCombinations = int(((len(freqTotalCountDict) * len(freqTotalCountDict)) - len(freqTotalCountDict)) / 2)
 
-## determine parent and daughter sequences
+## determine parent and child sequences
 ## 1. check accession numbers match
 # currently only on top blast hit
     newlyUpdatedCountDict = collections.defaultdict(list)
@@ -92,7 +93,11 @@ def tombRaider(args):
                     # 3. check if child only appears in samples where parent is present
                     # remove negative controls from co-occurrence patterns
                     # what about abundance?
-                    positiveDetectionB = [k for k, v in freqInputDict[childName].items() if v > 1]
+                    try:
+                        positiveDetectionB = [k for k, v in freqInputDict[childName].items() if v >= ABUNDANCE]
+                    except TypeError:
+                        print(f'FATAL ERROR: "-a", "--abundance" parameter not provided, aborting analysis...\n')
+                        exit()
                     positiveDetectionA = [k for k, v in freqInputDict[parentName].items() if v > 0]
                     if not all(item in positiveDetectionA for item in positiveDetectionB):
                         continue
@@ -173,6 +178,7 @@ def main():
     tombRaiderParser.add_argument('-z', '--zotu', help = 'zotu sequence input file name', dest = 'zotu', type = str)
     tombRaiderParser.add_argument('-t', '--tax', help = 'taxonomy input file name', dest = 'tax', type = str)
     tombRaiderParser.add_argument('-o', '--output', help = 'frequency table output file name', dest = 'output', type = str)
+    tombRaiderParser.add_argument('-a', '--abundance', help = 'abundance threshold to consider true detection', dest = 'abund', type = int)
 
     args = parser.parse_args()
     args.func(args)

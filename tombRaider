@@ -61,7 +61,7 @@ def tombRaider(args):
        with tqdm(total = os.path.getsize(FREQINPUT) + os.path.getsize(SEQINPUT) + os.path.getsize(TAXINPUT), desc = f'Reading Input Files into memory: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
            freqInputDict, freqTotalCountDict, pbar = freqToMemory(FREQINPUT, pbar)
            seqInputDict, pbar = zotuToMemory(SEQINPUT, pbar)
-           taxIdInputDict, taxQcovInputDict, taxPidentInputDict, pbar = taxToMemory(TAXINPUT, pbar)
+           taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar = taxToMemory(TAXINPUT, pbar)
     except TypeError:
        print(f'FATAL ERROR: "--frequency-input" and/or "--sequence-input" and/or "--taxonomy-input" parameter(s) not provided, aborting analysis...\n')
        exit()
@@ -162,6 +162,13 @@ def tombRaider(args):
             seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
 
 ## write updated taxonomy file to output
+# should we add support to add NA for missing BLASTS?
+    with open(TAXOUTPUT, 'w') as taxoutfile:
+        for item in newlyUpdatedCountDict:
+            try:
+                taxoutfile.write(f'{taxTotalDict[item]}\n')
+            except KeyError:
+                continue
 
 ## write log
     print(f'\nSUMMARY STATISTICS:\nNumber of sequences analysed: {len(seqInputDict)}\nSequences identified as artifacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n\nDETAILED LOG:')

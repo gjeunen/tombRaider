@@ -64,6 +64,7 @@ def taxToMemory(TAX, pbar):
     taxIdInputDict = {}
     taxQcovInputDict = {}
     taxPidentInputDict = {}
+    taxTotalDict = {}
     with open(TAX, 'r') as taxFile:
         for line in taxFile:
             pbar.update(len(line))
@@ -75,7 +76,8 @@ def taxToMemory(TAX, pbar):
             taxIdInputDict[seqName] = taxAccession
             taxQcovInputDict[seqName] = taxQcov
             taxPidentInputDict[seqName] = taxPident
-    return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, pbar
+            taxTotalDict[seqName] = line
+    return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar
 
 def dictionarySum(dicts, freqInputDict):
     ret = collections.defaultdict(int)

@@ -52,6 +52,7 @@ def tombRaider(args):
     TAXOUTPUT = args.taxOutput
     ABUNDANCE = args.abund
     SIMILARITY = args.similarity
+    OCCURRENCETYPE = args.occurrenceType
 
 ## starting print statement
     print(f'\ntombRaider v{__version__}\nhttps://github.com/gjeunen/tombRaider\n\n')
@@ -96,14 +97,20 @@ def tombRaider(args):
                     # 3. check if child only appears in samples where parent is present
                     # remove negative controls from co-occurrence patterns
                     # what about abundance?
-                    try:
-                        positiveDetectionB = [k for k, v in freqInputDict[childName].items() if v >= ABUNDANCE]
-                    except TypeError:
-                        print(f'FATAL ERROR: "-a", "--abundance" parameter not provided, aborting analysis...\n')
+                    if OCCURRENCETYPE == 'presence-absence':
+                        try:
+                            positiveDetectionB = [k for k, v in freqInputDict[childName].items() if v >= ABUNDANCE]
+                        except TypeError:
+                            print(f'FATAL ERROR: "--abundance" parameter not provided, aborting analysis...\n')
+                            exit()
+                        positiveDetectionA = [k for k, v in freqInputDict[parentName].items() if v > 0]
+                        if not all(item in positiveDetectionA for item in positiveDetectionB):
+                            continue
+                    elif OCCURRENCETYPE == 'abundance':
+                        print('TBA')
+                    else:
+                        print('FATAL ERROR: "--occurrence-type" parameter not specified as either "presence-absence" or "abundance", aborting analysis...\n')
                         exit()
-                    positiveDetectionA = [k for k, v in freqInputDict[parentName].items() if v > 0]
-                    if not all(item in positiveDetectionA for item in positiveDetectionB):
-                        continue
                     # 4. check sequence similarity
                     alignments = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
                     distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
@@ -111,7 +118,7 @@ def tombRaider(args):
                         if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) <= SIMILARITY:
                             continue
                     except TypeError:
-                        print(f'FATAL ERROR: "-s", "--similarity" parameter not provided, aborting analysis...\n')
+                        print(f'FATAL ERROR: "--similarity" parameter not provided, aborting analysis...\n')
                         exit()
                     if childName not in childParentComboDict and parentName not in childParentComboDict:
                         childParentComboDict[childName] = parentName
@@ -203,6 +210,7 @@ def main():
     tombRaiderParser.add_argument('--taxonomy-output', help = 'taxonomy output file name', dest = 'taxOutput', type = str)
     tombRaiderParser.add_argument('--abundance', help = 'abundance threshold to consider true detection', dest = 'abund', type = int)
     tombRaiderParser.add_argument('--similarity', help = 'similarity threshold needed between child and parent', dest = 'similarity', type = int)
+    tombRaiderParser.add_argument('--occurrence-type', help = 'data structure type to assess co-occurrence pattern ("presence-absence" or "abundance")', dest = 'occurrenceType', type = str)
 
     args = parser.parse_args()
     args.func(args)

@@ -70,57 +70,148 @@ def tombRaider(args):
 
 ## determine parent and daughter sequences
 ## 1. check accession numbers match
-## 2. check BLAST quality
-## 3. check sequence similarity
-## 4. check if b only appears in samples where a is present
-    toCombineDict = collections.defaultdict(list)
-    with tqdm(total = uniqueCombinations, desc = 'Identifying artefacts: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
-        for a, b in itertools.combinations(freqTotalCountDict.keys(), 2):
-            pbar.update(1)
-            try:
-                if taxIdInputDict[a] != taxIdInputDict[b]:
+# currently only on top blast hit
+    newlyUpdatedCountDict = collections.defaultdict(list)
+    combinedDict = collections.defaultdict(list)
+    childParentComboDict = {}
+    conflictDict = collections.defaultdict(list)
+    with tqdm(total = uniqueCombinations, desc = 'Identify artefacts: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
+        for parent in range(len(freqTotalCountDict.keys())):
+            parentName = list(freqTotalCountDict.keys())[parent]
+            newParentDict = freqInputDict[parentName]
+            for child in range(parent + 1, len(freqTotalCountDict.keys())):
+                pbar.update(1)
+                childName = list(freqTotalCountDict.keys())[child]
+                try:
+                    # 1. check if BLAST tax ID is the same
+                    if taxIdInputDict[parentName] != taxIdInputDict[childName]:
+                        continue
+                    # 2. check BLAST quality on percent identity and query coverage are lower for child than parent
+                    if taxPidentInputDict[childName] > taxPidentInputDict[parentName] and taxQcovInputDict[childName] > taxQcovInputDict[parentName]:
+                        continue
+                    # 3. check if child only appears in samples where parent is present
+                    # remove negative controls from co-occurrence patterns
+                    # what about abundance?
+                    positiveDetectionB = [k for k, v in freqInputDict[childName].items() if v > 1]
+                    positiveDetectionA = [k for k, v in freqInputDict[parentName].items() if v > 0]
+                    if not all(item in positiveDetectionA for item in positiveDetectionB):
+                        continue
+                    # 4. check sequence similarity
+                    alignments = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
+                    distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
+                    if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) < 85:
+                        continue
+                    if childName not in childParentComboDict and parentName not in childParentComboDict:
+                        childParentComboDict[childName] = parentName
+                        combinedDict[parentName].append(childName)
+                        # now you can add child numbers to parent
+                        for item in newParentDict:
+                            newValue = int(newParentDict[item]) + int(freqInputDict[childName][item])
+                            newParentDict[item] = newValue
+                    elif childName in childParentComboDict and parentName not in childParentComboDict:
+                        #print(f'{childName} already identified as child of {childParentComboDict[childName]}, but now also as child of {parentName}, while {parentName} is not identified as child of {childParentComboDict[childName]}')
+                        # childName should've already been added to childParentComboDict[childName] at this stage.
+                        # so nothing should happen, except keep a log of conflicts for future?
+                        conflictDict[childName].append(childParentComboDict[childName])
+                        conflictDict[childName].append(parentName)
+                    elif childName not in childParentComboDict and parentName in childParentComboDict:
+                        #print(f'{childName} identified as child of {parentName}, which in turn is a child of {childParentComboDict[parentName]}, though {childName} not identified as child of {childParentComboDict[parentName]}')
+                        # here we should add childName to childParentComboDict[parentName], dependent on what is chosen to do with grandchildren
+                        combinedDict[childParentComboDict[parentName]].append(childName)
+                        childParentComboDict[childName] = childParentComboDict[parentName]
+                        # now you can add child numbers to grandparent
+                        for item in newlyUpdatedCountDict[childParentComboDict[parentName]]:
+                            newValueGrandParent = int(newlyUpdatedCountDict[childParentComboDict[parentName]][item]) + int(freqInputDict[childName][item])
+                            newlyUpdatedCountDict[childParentComboDict[parentName]][item] = newValueGrandParent
+                    elif childName in childParentComboDict and parentName in childParentComboDict:
+                        if childParentComboDict[childName] != childParentComboDict[parentName]:
+                            print(f'both {childName} and {parentName} identified as children of different parents, i.e., {childParentComboDict[childName]} and {childParentComboDict[parentName]}, respectively')
+                            # nothing should happen here, as childName is already added to childParentComboDict[childName], though not sure how this combo can happen, needs investigating
+                except KeyError:
                     continue
-                if taxPidentInputDict[b] > taxPidentInputDict[a]:
-                    #print(a, b, taxIdInputDict[a], taxIdInputDict[b])
-                    continue
-                alignments = pairwise2.align.globalxx(seqInputDict[a], seqInputDict[b])
-                distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
-                if 100 - (distanceCalculation/ max(len(seqInputDict[a]), len(seqInputDict[b])) * 100) < 85:
-                    continue
-                positiveDetectionB = [k for k, v in freqInputDict[b].items() if v > 0]
-                positiveDetectionA = [k for k, v in freqInputDict[a].items() if v > 0]
-                if not all(item in positiveDetectionA for item in positiveDetectionB):
-                    continue
-                toCombineDict[a].append(b)
-            except KeyError:
-                continue
-
-## merge values of parents and daughters
-## remove daughters    
-    newDict = collections.defaultdict(dict)
-    skipDict = {}
-    for item in freqTotalCountDict:
-        if item in skipDict:
-            continue
-        if item not in toCombineDict:
-            newDict[item] = freqInputDict[item]
-        else:
-            dictList = toCombineDict[item]
-            for x in dictList:
-                skipDict[x] = 1
-            dictList.append(item)
-            newDict[item] = dictionarySum(dictList, freqInputDict)
+            # if parentName not in childParentComboDict, add parent info to new Dict
+            if parentName not in childParentComboDict:
+                newlyUpdatedCountDict[parentName] = newParentDict
 
 ## write to output
     count = 0
     with open(OUTPUT, 'w') as outfile:
-        for item in newDict:
+        for item in newlyUpdatedCountDict:
             count += 1
             if count == 1:
-                title = "\t".join(newDict[item].keys())
+                title = "\t".join(newlyUpdatedCountDict[item].keys())
                 outfile.write(f'ID\t{title}\n')
-            test = "\t".join(str(value) for value in newDict[item].values())
+            test = "\t".join(str(value) for value in newlyUpdatedCountDict[item].values())
             outfile.write(f'{item}\t{test}\n')
+
+## write log
+    print(f'\nSUMMARY STATISTICS:\nNumber of sequences analysed: {len(seqInputDict)}\nSequences identified as artifacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n\nDETAILED LOG:')
+    for item in combinedDict:
+        print(f'{item} identified as parent sequence of: {" + ".join(combinedDict[item])}')
+    print()
+
+
+    # for item in combinedDict:
+    #     print(item, combinedDict[item])
+            #print(parentName)
+#         for a, b in itertools.combinations(freqTotalCountDict.keys(), 2):
+#             pbar.update(1)
+#             try:
+#                 if taxIdInputDict[a] != taxIdInputDict[b]:
+#                     continue
+# ## 2. check BLAST quality on percent identity and query coverage
+# # currently only on top blast hit
+#                 if taxPidentInputDict[b] > taxPidentInputDict[a] and taxQcovInputDict[b] > taxQcovInputDict[a]:
+#                     continue
+# ## 3. check if b only appears in samples where a is present
+#                 positiveDetectionB = [k for k, v in freqInputDict[b].items() if v > 1]
+#                 positiveDetectionA = [k for k, v in freqInputDict[a].items() if v > 0]
+#                 # remove negative controls from co-occurrence patterns
+#                 if not all(item in positiveDetectionA for item in positiveDetectionB):
+#                     continue
+# ## 4. check sequence similarity
+#                 alignments = pairwise2.align.globalxx(seqInputDict[a], seqInputDict[b])
+#                 distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
+#                 if 100 - (distanceCalculation/ max(len(seqInputDict[a]), len(seqInputDict[b])) * 100) < 85:
+#                     continue
+#                 toCombineDict[a].append(b)
+#             except KeyError:
+#                 # run taxon-independent approach for NA in BLAST
+#                 continue
+
+#     for item in toCombineDict:
+#         print(item, toCombineDict[item])
+
+
+# ## merge values of parents and daughters
+# ## remove daughters    
+#     newDict = collections.defaultdict(dict)
+#     skipDict = {}
+#     for item in freqTotalCountDict:
+#         if item in skipDict:
+#             continue
+#         if item not in toCombineDict:
+#             newDict[item] = freqInputDict[item]
+#         else:
+#             dictList = toCombineDict[item]
+#             for x in dictList:
+#                 skipDict[x] = 1
+#             dictList.append(item)
+#             newDict[item] = dictionarySum(dictList, freqInputDict)
+
+# ## write to output
+#     count = 0
+#     with open(OUTPUT, 'w') as outfile:
+#         for item in newDict:
+#             count += 1
+#             if count == 1:
+#                 title = "\t".join(newDict[item].keys())
+#                 outfile.write(f'ID\t{title}\n')
+#             test = "\t".join(str(value) for value in newDict[item].values())
+#             outfile.write(f'{item}\t{test}\n')
+    
+#     for item in toCombineDict:
+#         print(item, toCombineDict[item])
 
 ############
 # ARGPARSE #

@@ -1,219 +1,120 @@
 #! /usr/bin/env python3
 
-
-##################
-# IMPORT MODULES #
-##################
-import argparse
-from tqdm import tqdm
-import os
-import itertools
-from Bio import pairwise2
-import collections
-
+import rich
+import rich_click as click
 from function import __version__
-from function.tombRaiderFunctions import freqToMemory, zotuToMemory, taxToMemory, dictionarySum
+from function.tombRaiderFunctions import taxonDependentCoOccurrenceAlgorithm, taxonIndependentCoOccurrenceAlgorithm, mostRecentCommonAncestorAlgorithm, mrcaCalculatorAlgorithm
+#from rich import print
+
+# Configuration for rich-click CLI help
+click.rich_click.USE_RICH_MARKUP = True
+click.rich_click.SHOW_METAVARS_COLUMN = False
+click.rich_click.APPEND_METAVARS_HELP = True
+click.rich_click.HEADER_TEXT = (f"[yellow]/[/][cyan]/[/][yellow]/[/] [bold][link=https://github.com/gjeunen/tombRaider]tombRaider[/link][/] | v{__version__}")
+click.rich_click.FOOTER_TEXT = "See [link=https://github.com/gjeunen/tombRaider]https://github.com/gjeunen/tombRaider[/] for more details."
+click.rich_click.ERRORS_SUGGESTION = f"This is tombRaider [cyan]v{__version__}[/]\nFor more help, run '[yellow]tombRaider --help[/]' or visit [link=https://github.com/gjeunen/tombRaider]https://github.com/gjeunen/tombRaider[/]"
+click.rich_click.STYLE_ERRORS_SUGGESTION = ""
+click.rich_click.OPTION_GROUPS = {
+    "tombRaider": [
+        {
+            "name": "Main options",
+            "options": [
+                "--method",
+                "--occurrence-type",
+            ],
+        },
+        {
+            "name": "Input files",
+            "options": [
+                "--frequency-input",
+                "--sequence-input",
+                "--taxonomy-input",
+            ],
+        },
+        {
+            "name": "Output files",
+            "options": [
+                "--frequency-output",
+                "--sequence-output",
+                "--taxonomy-output",
+            ],
+        },
+        {
+            "name": "Threshold parameters",
+            "options": [
+                "--abundance",
+                "--similarity",
+            ],
+        },
+        {
+            "name": "Taxonomy file details",
+            "options": [
+                "--seqname",
+                "--taxid",
+                "--pident",
+                "--qcov",
+                "--eval",
+            ],
+        },
+    ],
+}
+
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
+@click.option("--method", default = 'taxon-dependent co-occurrence', help = "merging method ('taxon-dependent co-occurrence' [default], 'taxon-independent co-occurrence', 'most recent common ancestor', 'mrca calculator')")
+@click.option("--frequency-input", "frequency_input_", help = "frequency table input file name")
+@click.option("--sequence-input", "sequence_input_", help = "sequence input file name")
+@click.option("--taxonomy-input", "taxonomy_input_", help = "taxonomy input file name")
+@click.option("--frequency-output", "frequency_output_", help = "frequency table output file name")
+@click.option("--sequence-output", "sequence_output_", help = "sequence output file name")
+@click.option("--taxonomy-output", "taxonomy_output_", help = "taxonomy output file name")
+@click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern ('presence-absence' or 'abundance' [default])")
+@click.option("--abundance", default = 1, help = "abundance threshold to consider true detection")
+@click.option("--similarity", default = 90, help = "similarity threshold needed between child and parent")
+@click.option("--seqname", default = 0, help = "position of the sequence name information in the BLAST input file")
+@click.option("--taxid", default = 3, help = "position of the taxonomic id number information in the BLAST input file")
+@click.option("--pident", default = 5, help = "position of the percent identity information in the BLAST input file")
+@click.option("--qcov", default = 7, help = "position of the query coverage information in the BLAST input file")
+@click.option("--eval", "eval_", default = 8, help = "position of the e-value information in the BLAST input file")
 
 
-#########################
-# MODULE mrcaCalculator #
-#########################
-# function to calculate the most recent common ancestor from BLAST
-def mrcaCalculator(args):
-    INPUT = args.input
-
-
-#####################
-# MODULE mrcaMerger #
-#####################
-# function to merge sequences based on the most recent common ancestor ID
-def mrcaMerger(args):
-    INPUT = args.input
-
-
-######################
-# MODULE occurMerger #
-######################
-# function to merge sequences based on co-occurrence patterns
-def occurMerger(args):
-    INPUT = args.input
-
-
-#####################
-# MODULE tombRaider #
-#####################
-# function to merge sequences based on taxon-dependent co-occurrence patterns
-def tombRaider(args):
-    FREQINPUT = args.freqInput
-    SEQINPUT = args.seqInput
-    TAXINPUT = args.taxInput
-    FREQOUTPUT = args.freqOutput
-    SEQOUTPUT = args.seqOutput
-    TAXOUTPUT = args.taxOutput
-    ABUNDANCE = args.abund
-    SIMILARITY = args.similarity
-    OCCURRENCETYPE = args.occurrenceType
-
-## starting print statement
-    print(f'\ntombRaider v{__version__}\nhttps://github.com/gjeunen/tombRaider\n\n')
-
-## read FREQ, ZOTU, and TAX into memory
-    try:
-       with tqdm(total = os.path.getsize(FREQINPUT) + os.path.getsize(SEQINPUT) + os.path.getsize(TAXINPUT), desc = f'Reading Input Files into memory: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
-           freqInputDict, freqTotalCountDict, pbar = freqToMemory(FREQINPUT, pbar)
-           seqInputDict, pbar = zotuToMemory(SEQINPUT, pbar)
-           taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar = taxToMemory(TAXINPUT, pbar)
-    except TypeError:
-       print(f'FATAL ERROR: "--frequency-input" and/or "--sequence-input" and/or "--taxonomy-input" parameter(s) not provided, aborting analysis...\n')
-       exit()
-    except FileNotFoundError:
-       print(f'FATAL ERROR: {FREQINPUT} and/or {SEQINPUT} and/or {TAXINPUT} file(s) not found, aborting analysis...\n')
-       exit()
-
-## calculate number of unique combinations for tqdm print (x = ((n*n)-n)/2)
-    uniqueCombinations = int(((len(freqTotalCountDict) * len(freqTotalCountDict)) - len(freqTotalCountDict)) / 2)
-
-## determine parent and child sequences
-## 1. check accession numbers match
-# currently only on top blast hit
-    newlyUpdatedCountDict = collections.defaultdict(list)
-    combinedDict = collections.defaultdict(list)
-    childParentComboDict = {}
-    conflictDict = collections.defaultdict(list)
-    with tqdm(total = uniqueCombinations, desc = 'Identify artefacts: ', bar_format = '{desc}{percentage:.1f}%|{bar}|{elapsed}<{remaining}') as pbar:
-        for parent in range(len(freqTotalCountDict.keys())):
-            parentName = list(freqTotalCountDict.keys())[parent]
-            newParentDict = freqInputDict[parentName]
-            for child in range(parent + 1, len(freqTotalCountDict.keys())):
-                pbar.update(1)
-                childName = list(freqTotalCountDict.keys())[child]
-                try:
-                    # 1. check if BLAST tax ID is the same
-                    if taxIdInputDict[parentName] != taxIdInputDict[childName]:
-                        continue
-                    # 2. check BLAST quality on percent identity and query coverage are lower for child than parent
-                    if taxPidentInputDict[childName] > taxPidentInputDict[parentName] and taxQcovInputDict[childName] > taxQcovInputDict[parentName]:
-                        continue
-                    # 3. check if child only appears in samples where parent is present
-                    # remove negative controls from co-occurrence patterns
-                    # what about abundance?
-                    if OCCURRENCETYPE == 'presence-absence':
-                        try:
-                            positiveDetectionB = [k for k, v in freqInputDict[childName].items() if v >= ABUNDANCE]
-                        except TypeError:
-                            print(f'FATAL ERROR: "--abundance" parameter not provided, aborting analysis...\n')
-                            exit()
-                        positiveDetectionA = [k for k, v in freqInputDict[parentName].items() if v > 0]
-                        if not all(item in positiveDetectionA for item in positiveDetectionB):
-                            continue
-                    elif OCCURRENCETYPE == 'abundance':
-                        print('TBA')
-                    else:
-                        print('FATAL ERROR: "--occurrence-type" parameter not specified as either "presence-absence" or "abundance", aborting analysis...\n')
-                        exit()
-                    # 4. check sequence similarity
-                    alignments = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
-                    distanceCalculation = sum(1 for a, b in zip(alignments[0][0], alignments[0][1]) if a != b)
-                    try:
-                        if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) <= SIMILARITY:
-                            continue
-                    except TypeError:
-                        print(f'FATAL ERROR: "--similarity" parameter not provided, aborting analysis...\n')
-                        exit()
-                    if childName not in childParentComboDict and parentName not in childParentComboDict:
-                        childParentComboDict[childName] = parentName
-                        combinedDict[parentName].append(childName)
-                        # now you can add child numbers to parent
-                        for item in newParentDict:
-                            newValue = int(newParentDict[item]) + int(freqInputDict[childName][item])
-                            newParentDict[item] = newValue
-                    elif childName in childParentComboDict and parentName not in childParentComboDict:
-                        #print(f'{childName} already identified as child of {childParentComboDict[childName]}, but now also as child of {parentName}, while {parentName} is not identified as child of {childParentComboDict[childName]}')
-                        # childName should've already been added to childParentComboDict[childName] at this stage.
-                        # so nothing should happen, except keep a log of conflicts for future?
-                        conflictDict[childName].append(childParentComboDict[childName])
-                        conflictDict[childName].append(parentName)
-                    elif childName not in childParentComboDict and parentName in childParentComboDict:
-                        #print(f'{childName} identified as child of {parentName}, which in turn is a child of {childParentComboDict[parentName]}, though {childName} not identified as child of {childParentComboDict[parentName]}')
-                        # here we should add childName to childParentComboDict[parentName], dependent on what is chosen to do with grandchildren
-                        combinedDict[childParentComboDict[parentName]].append(childName)
-                        childParentComboDict[childName] = childParentComboDict[parentName]
-                        # now you can add child numbers to grandparent
-                        for item in newlyUpdatedCountDict[childParentComboDict[parentName]]:
-                            newValueGrandParent = int(newlyUpdatedCountDict[childParentComboDict[parentName]][item]) + int(freqInputDict[childName][item])
-                            newlyUpdatedCountDict[childParentComboDict[parentName]][item] = newValueGrandParent
-                    elif childName in childParentComboDict and parentName in childParentComboDict:
-                        if childParentComboDict[childName] != childParentComboDict[parentName]:
-                            print(f'both {childName} and {parentName} identified as children of different parents, i.e., {childParentComboDict[childName]} and {childParentComboDict[parentName]}, respectively')
-                            # nothing should happen here, as childName is already added to childParentComboDict[childName], though not sure how this combo can happen, needs investigating
-                except KeyError:
-                    continue
-            # if parentName not in childParentComboDict, add parent info to new Dict
-            if parentName not in childParentComboDict:
-                newlyUpdatedCountDict[parentName] = newParentDict
-
-## write updated frequency table to output
-    count = 0
-    with open(FREQOUTPUT, 'w') as outfile:
-        for item in newlyUpdatedCountDict:
-            count += 1
-            if count == 1:
-                title = "\t".join(newlyUpdatedCountDict[item].keys())
-                outfile.write(f'ID\t{title}\n')
-            test = "\t".join(str(value) for value in newlyUpdatedCountDict[item].values())
-            outfile.write(f'{item}\t{test}\n')
-
-## write updated sequence file to output
-    with open(SEQOUTPUT, 'w') as seqoutfile:
-        for item in newlyUpdatedCountDict:
-            seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
-
-## write updated taxonomy file to output
-# should we add support to add NA for missing BLASTS?
-    with open(TAXOUTPUT, 'w') as taxoutfile:
-        for item in newlyUpdatedCountDict:
-            try:
-                taxoutfile.write(f'{taxTotalDict[item]}\n')
-            except KeyError:
-                continue
-
-## write log
-    print(f'\nSUMMARY STATISTICS:\nNumber of sequences analysed: {len(seqInputDict)}\nSequences identified as artifacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n\nDETAILED LOG:')
-    for item in combinedDict:
-        print(f'{item} identified as parent sequence of: {" + ".join(combinedDict[item])}')
-    print()
-
-############
-# ARGPARSE #
-############
-def main():
-    parser = argparse.ArgumentParser(description = 'identify and remove artefact sequences from metabarcoding data')
-    parser.add_argument('--version', action = 'version', version = __version__)
-    subparser = parser.add_subparsers()
-
-    mrcaCalculatorParser = subparser.add_parser('mrcaCalculator', description = 'calculate the most recent common ancestor from BLAST')
-    mrcaCalculatorParser.set_defaults(func = mrcaCalculator)
+def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_):
+    """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefact sequences from metabarcoding datasets.
     
-    mrcaMergerParser = subparser.add_parser('mrcaMerger', description = 'merge sequences based on the most recent common ancestor ID')
-    mrcaMergerParser.set_defaults(func = mrcaMerger)
+    The algorithm identifies parent-child sequences based on taxonomic ID from raw BLAST outputs, sequence similarity thesholds, and sample co-occurrence. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including taxon-independent co-occurrence models and
+    Most Recent Common Ancestor merging. To run the code, supply your count table, sequence fasta file, and raw BLAST output file, as well as new file names for each where the collated results are written to.
+    Additionally, the occurrence type can be specified for presence-absence or abundance, while thresholds for similarity and minimum detection can be added numerically.
+    
 
-    occurMergerParser = subparser.add_parser('occurMerger', description = 'merge sequences based on co-occurrence patterns')
-    occurMergerParser.set_defaults(func = occurMerger)
 
-    tombRaiderParser = subparser.add_parser('tombRaider', description = 'merge sequences based on taxon-dependent co-occurrence patterns')
-    tombRaiderParser.set_defaults(func = tombRaider)
-    tombRaiderParser.add_argument('--frequency-input', help = 'frequency table input file name', dest = 'freqInput', type = str)
-    tombRaiderParser.add_argument('--sequence-input', help = 'sequence input file name', dest = 'seqInput', type = str)
-    tombRaiderParser.add_argument('--taxonomy-input', help = 'taxonomy input file name', dest = 'taxInput', type = str)
-    tombRaiderParser.add_argument('--frequency-output', help = 'frequency table output file name', dest = 'freqOutput', type = str)
-    tombRaiderParser.add_argument('--sequence-output', help = 'sequence output file name', dest = 'seqOutput', type = str)
-    tombRaiderParser.add_argument('--taxonomy-output', help = 'taxonomy output file name', dest = 'taxOutput', type = str)
-    tombRaiderParser.add_argument('--abundance', help = 'abundance threshold to consider true detection', dest = 'abund', type = int)
-    tombRaiderParser.add_argument('--similarity', help = 'similarity threshold needed between child and parent', dest = 'similarity', type = int)
-    tombRaiderParser.add_argument('--occurrence-type', help = 'data structure type to assess co-occurrence pattern ("presence-absence" or "abundance")', dest = 'occurrenceType', type = str)
+    To create the BLAST input file, use the '-outfmt 6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen' parameter specifications to enable the default settings for '--seqname' , '--taxid', '--pident', '--qcov', and '--eval'. Otherwise provide numerical values for where the information can be found. NOTE: tombRaider starts counting from 0. So, if the information is found in the first column, enter 0. Other formats besides '-outfmt 6' are currently not supported by tombRaider.
 
-    args = parser.parse_args()
-    args.func(args)
+    
+    
+    For example, to run tombRaider, use 
+    
+    [blue bold]tombRaider --method 'taxon-dependent co-occurrence' --frequency-input count.txt --taxonomy-input blast.txt --sequence-input otu.fasta --frequency-output count_new.txt --sequence-output otu_new.fasta --taxonomy-output blast_new.txt --occurrence-type abundance --similarity 0.90 --abundance 3[/]
+    """
+    console = rich.console.Console(stderr=True, highlight=False)
+    console.print(f"\n[yellow]/[/][cyan]/[/][yellow]/[/] [bold][link=https://github.com/gjeunen/tombRaider]tombRaider[/link][/] | v{__version__}\n")
 
-if __name__ == '__main__':
-    main()
+    # check --method option is valid and pass parameters to the function file
+    if method == 'taxon-dependent co-occurrence':
+        console.print(f"[cyan]|              Method[/] | {method} (default)")
+        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_)
+    elif method == 'taxon-independent co-occurrence':
+        console.print(f"[cyan]|              Method[/] | {method}")
+        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity)
+    elif method == 'most recent common ancestor':
+        console.print(f"[cyan]|              Method[/] | {method}")
+        _ = mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_)
+    elif method == 'mrca calculator':
+        _ = mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_)
+    elif method == None:
+        console.print("[cyan]|              Method[/] | [bold yellow]parameter --method not specified, aborting analysis...[/]")
+        exit()
+    else:
+        console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
+        exit()
+
+if __name__ == "__main__":
+    tombRaider()

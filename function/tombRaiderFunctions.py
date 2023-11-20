@@ -411,11 +411,3 @@ def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_i
     '''
     console = rich.console.Console(stderr=True, highlight=False)
 
-###################
-# MRCA CALCULATOR #
-###################    
-def mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
-    '''
-    The function to calculate the Most Recent Common Ancestor from a standard BLAST output
-    '''
-    console = rich.console.Console(stderr=True, highlight=False)

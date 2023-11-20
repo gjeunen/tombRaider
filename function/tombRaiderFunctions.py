@@ -8,6 +8,7 @@ import rich
 import rich.progress
 import os
 from Bio import pairwise2
+import sys
 
 
 ########################
@@ -38,7 +39,7 @@ def freqToMemory(FREQ, pbar, progress_bar):
                     sumCount += int(line.split('\t')[i + 1])
                 freqTotalCountDict[zotuName] = sumCount
     freqTotalCountSortedDict = dict(sorted(freqTotalCountDict.items(), key = lambda x:x[1], reverse = True))
-    return freqInputDict, freqTotalCountSortedDict, pbar, progress_bar
+    return freqInputDict, freqTotalCountSortedDict, sampleNameList, pbar, progress_bar
 
 def zotuToMemory(ZOTU, freqTotalCountDict, pbar, progress_bar):
     '''
@@ -103,7 +104,7 @@ def taxToMemory(TAX, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pb
 ########################
 # tombRaider ALGORITHM #
 ########################
-def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_):
+def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, negative, seqname, taxid, pident, qcov, eval_):
     '''
     The main function to identify and merge parent-child sequences using the taxon-dependent co-occurrence algorithm
     '''
@@ -125,7 +126,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
         inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
         with rich.progress.Progress(*columns) as progress_bar:
             pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
-            freqInputDict, freqTotalCountDict, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
+            freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
             seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, freqTotalCountDict, pbar, progress_bar)
             taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
     except TypeError as e:
@@ -138,6 +139,38 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
     ## calculate number of unique combinations for progress bar (x = ((n*n)-n)/2)
     uniqueCombinations = int(((len(freqTotalCountDict) * len(freqTotalCountDict)) - len(freqTotalCountDict)) / 2)
 
+    ## get list of samples and exclude if {negative} != None
+    fullNegativeList = []
+    if negative == None:
+        freqInputDictSubset = freqInputDict
+    else:
+        negativeList = negative.split('+')
+        for item in negativeList:
+            if item.startswith('*') and item.endswith('*'):
+                itemMatch = item.rstrip('*').lstrip('*')
+                for sampleName in sampleNameList:
+                    if itemMatch in sampleName:
+                        fullNegativeList.append(sampleName)
+            elif item.startswith('*'):
+                itemMatch = item.lstrip('*')
+                for sampleName in sampleNameList:
+                    if sampleName.endswith(itemMatch):
+                        fullNegativeList.append(sampleName)
+            elif item.endswith('*'):
+                itemMatch = item.rstrip('*')
+                for sampleName in sampleNameList:
+                    if sampleName.startswith(itemMatch):
+                        fullNegativeList.append(sampleName)
+            else:
+                for sampleName in sampleNameList:
+                    if sampleName == item:
+                        fullNegativeList.append(sampleName)
+            freqInputDictSubset = freqInputDict
+            for item in freqInputDictSubset:
+                for sampleToRemove in fullNegativeList:
+                    if sampleToRemove in freqInputDictSubset[item]:
+                        del freqInputDictSubset[item][sampleToRemove]
+            
     ## determine parent and child sequences
     newlyUpdatedCountDict = collections.defaultdict(list)
     combinedDict = collections.defaultdict(list)
@@ -172,17 +205,17 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                     # 4. check co-occurrence pattern
                     # 4.1 check if child only appears in samples where parent is present
                     if occurrence_type_ == 'presence-absence':
-                        positiveDetectionsChild = [k for k, v in freqInputDict[childName].items() if v >= int(abundance)]
-                        positiveDetectionsParent = [k for k, v in freqInputDict[parentName].items() if v >= int(abundance)]
+                        positiveDetectionsChild = [k for k, v in freqInputDictSubset[childName].items() if v >= int(abundance)]
+                        positiveDetectionsParent = [k for k, v in freqInputDictSubset[parentName].items() if v >= int(abundance)]
                         if not all(item in positiveDetectionsParent for item in positiveDetectionsChild):
                             continue
 
                     # 4.2 check if child only has lower abundance in samples compared to parent
                     elif occurrence_type_ == 'abundance':
                         count = 0
-                        for item in freqInputDict[parentName]:
-                            parentValue = freqInputDict[parentName][item]
-                            childValue = freqInputDict[childName][item]
+                        for item in freqInputDictSubset[parentName]:
+                            parentValue = freqInputDictSubset[parentName][item]
+                            childValue = freqInputDictSubset[childName][item]
                             if parentValue < int(abundance):
                                 parentValue = 0
                             if childValue < int(abundance):
@@ -192,7 +225,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                         if count > 0:
                             continue
                     else:
-                        console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' no specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
+                        console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
                         exit()
 
                     # 5. check sequence similarity
@@ -257,6 +290,9 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
             console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]child:      {', '.join(combinedDict[item])}[/]")
         else:
             console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
+    
+    ## write log file
+    commandLineInput = ' '.join(sys.argv[1:])
 
 ####################
 # LULU ALTERNATIVE #

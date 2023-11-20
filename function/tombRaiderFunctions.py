@@ -396,7 +396,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
 ####################
 # LULU ALTERNATIVE #
 ####################
-def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity):
+def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     The function to identify and merge parent-child sequences based on the LULU algorithm (taxon-independent co-occurrence patterns)
     '''
@@ -405,7 +405,7 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
 ####################
 # MRCA ALTERNATIVE #
 ####################
-def mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, seqname, taxid, pident, qcov, eval_):
+def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     Thefunction to identify and merge parent-child sequences based on the taxonomic ID of sequences
     '''
@@ -414,7 +414,7 @@ def mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonom
 ###################
 # MRCA CALCULATOR #
 ###################    
-def mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, seqname, taxid, pident, qcov, eval_):
+def mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     The function to calculate the Most Recent Common Ancestor from a standard BLAST output
     '''

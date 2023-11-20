@@ -9,6 +9,7 @@ import rich.progress
 import os
 from Bio import pairwise2
 import sys
+import copy
 
 
 ########################
@@ -142,7 +143,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
     ## get list of samples and exclude if {negative} != None
     fullNegativeList = []
     if negative == None:
-        freqInputDictSubset = freqInputDict
+        freqInputDictSubset = copy.deepcopy(freqInputDict)
     else:
         negativeList = negative.split('+')
         for item in negativeList:
@@ -165,7 +166,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                 for sampleName in sampleNameList:
                     if sampleName == item:
                         fullNegativeList.append(sampleName)
-            freqInputDictSubset = freqInputDict
+            freqInputDictSubset = copy.deepcopy(freqInputDict)
             for item in freqInputDictSubset:
                 for sampleToRemove in fullNegativeList:
                     if sampleToRemove in freqInputDictSubset[item]:

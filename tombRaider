@@ -26,9 +26,10 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Parameters",
             "options": [
                 "--occurrence-type",
-                "--abundance",
+                "--detection-threshold",
                 "--similarity",
                 "--negative",
+                "--ratio",
             ],
         },
         {
@@ -69,9 +70,10 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--sequence-output", "sequence_output_", help = "sequence output file name")
 @click.option("--taxonomy-output", "taxonomy_output_", help = "taxonomy output file name")
 @click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern ('presence-absence' or 'abundance' [default])")
-@click.option("--abundance", default = 1, help = "abundance threshold to consider true detection")
+@click.option("--detection-threshold", "detection_threshold_", default = 1, help = "detection threshold to consider true detection")
 @click.option("--similarity", default = 90, help = "similarity threshold needed between child and parent")
 @click.option("--negative", help = "list of negative control samples")
+@click.option("--ratio", default = 1.0, help = "minimum ratio for co-occurrence pattern to hold true")
 @click.option("--seqname", default = 0, help = "position of the sequence name information in the BLAST input file")
 @click.option("--taxid", default = 3, help = "position of the taxonomic id number information in the BLAST input file")
 @click.option("--pident", default = 5, help = "position of the percent identity information in the BLAST input file")
@@ -79,7 +81,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--eval", "eval_", default = 8, help = "position of the e-value information in the BLAST input file")
 
 
-def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, negative, seqname, taxid, pident, qcov, eval_):
+def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefact sequences from metabarcoding datasets.
     
     The algorithm identifies parent-child sequences based on taxonomic ID from raw BLAST outputs, sequence similarity thesholds, and sample co-occurrence. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including taxon-independent co-occurrence models and
@@ -92,7 +94,7 @@ def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequ
 
     
     
-    For example, to run tombRaider, use 
+    For example, to run tombRaider, use: 
     
     [blue bold]tombRaider --method 'taxon-dependent co-occurrence' --frequency-input count.txt --taxonomy-input blast.txt --sequence-input otu.fasta --frequency-output count_new.txt --sequence-output otu_new.fasta --taxonomy-output blast_new.txt --occurrence-type abundance --similarity 90 --abundance 3[/]
     """
@@ -102,15 +104,15 @@ def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequ
     # check --method option is valid and pass parameters to the function file
     if method == 'taxon-dependent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method} (default)")
-        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, negative, seqname, taxid, pident, qcov, eval_)
+        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
     elif method == 'taxon-independent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity)
+        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity)
     elif method == 'most recent common ancestor':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_)
+        _ = mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, seqname, taxid, pident, qcov, eval_)
     elif method == 'mrca calculator':
-        _ = mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_)
+        _ = mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, seqname, taxid, pident, qcov, eval_)
     elif method == None:
         console.print("[cyan]|              Method[/] | [bold yellow]parameter --method not specified, aborting analysis...[/]")
         exit()

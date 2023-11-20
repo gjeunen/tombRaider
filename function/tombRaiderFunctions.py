@@ -220,6 +220,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                     # 4.2 check if child only has lower abundance in samples compared to parent
                     elif occurrence_type_ == 'abundance':
                         count = 0
+                        totalCount = 0
                         for item in freqInputDictSubset[parentName]:
                             parentValue = freqInputDictSubset[parentName][item]
                             childValue = freqInputDictSubset[childName][item]
@@ -229,7 +230,12 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                                 childValue = 0
                             if parentValue < childValue:
                                 count += 1
-                        if count > 0:
+                            if parentValue > 0:
+                                totalCount += 1
+                            if childValue > 0 and parentValue == 0:
+                                totalCount += 1
+                        totalRatio = 1 - (count / totalCount)
+                        if totalRatio < ratio:
                             continue
                     else:
                         console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
@@ -286,7 +292,6 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                 taxoutfile.write(f'{subitem}\n')
 
     ## write log
-    console.print(f"[cyan]|                    [/] | [bold yellow][/]")
     console.print(f"[cyan]|  Summary Statistics[/] | [bold yellow][/]")
     console.print(f"[cyan]|     Total # of ASVs[/] | [bold yellow]{len(seqInputDict)}[/]")
     console.print(f"[cyan]|Total # of Artefacts[/] | [bold yellow]{len(childParentComboDict)} ({float('{:.2f}'.format(len(childParentComboDict) / len(seqInputDict) * 100))}%)[/]")

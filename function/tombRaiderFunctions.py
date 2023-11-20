@@ -114,6 +114,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
     columns = [*rich.progress.Progress.get_default_columns(), rich.progress.TimeElapsedColumn()]
     startTime = datetime.datetime.now()
     formattedTime = startTime.strftime("%Y-%m-%d %H:%M:%S")
+    commandLineInput = ' '.join(sys.argv[1:])
 
     # check if all parameters are provided
     missingArguments = checkParamsNotNone(frequency_input = frequency_input_, sequence_input = sequence_input_, taxonomy_input = taxonomy_input_, frequency_output = frequency_output_, sequence_output = sequence_output_, taxonomy_output = taxonomy_output_)
@@ -180,6 +181,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
     combinedDict = collections.defaultdict(list)
     childParentComboDict = {}
     logDict = collections.defaultdict(lambda: collections.defaultdict(list))
+    condensedLogDict = collections.defaultdict(lambda: collections.defaultdict(list))
     with rich.progress.Progress(*columns) as progress_bar:
         pbar = progress_bar.add_task(console = console, description="[cyan]|  Identify artefacts[/] |", total=uniqueCombinations)
 
@@ -204,18 +206,22 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                             logDict[childName][parentName].append(f'non-matching tax IDs ({list(taxIdChildSet)[0]}; {list(taxIdParentSet)[0]})')
                         except IndexError:
                             logDict[childName][parentName].append(f'non-matching tax IDs (NA; NA)')
+                        #condensedLogDict[childName]['non-matching tax IDs'].append(parentName)
                         continue
 
                     # 3. check BLAST quality on percent identity and query coverage are lower for child than parent
                     # only check top BLAST hit for now. Probably not accurate, so will need to be altered in future
                     logDict[childName][parentName].append(f'matching tax IDs ({list(taxIdParentSet.intersection(taxIdChildSet))[0]})')
+                    condensedLogDict[childName]['matching tax IDs'].append(parentName)
                     if taxPidentInputDict[childName][0] > taxPidentInputDict[parentName][0] and taxQcovInputDict[childName][0] > taxQcovInputDict[parentName][0]:
                         logDict[childName][parentName].append(f'BLAST score threshold not met ({taxPidentInputDict[childName][0]}, {taxPidentInputDict[parentName][0]}; {taxQcovInputDict[childName][0]}, {taxQcovInputDict[parentName][0]})')
+                        #condensedLogDict[childName]['BLAST score threshold not met'].append(parentName)
                         continue
 
                     # 4. check co-occurrence pattern
                     # 4.1 check if child only appears in samples where parent is present
                     logDict[childName][parentName].append(f'BLAST score threshold met ({taxPidentInputDict[childName][0]}, {taxPidentInputDict[parentName][0]}; {taxQcovInputDict[childName][0]}, {taxQcovInputDict[parentName][0]})')
+                    condensedLogDict[childName]['BLAST score threshold met'].append(parentName)
                     if occurrence_type_ == 'presence-absence':
                         positiveDetectionsChild = [k for k, v in freqInputDictSubset[childName].items() if v >= int(detection_threshold_)]
                         positiveDetectionsParent = [k for k, v in freqInputDictSubset[parentName].items() if v >= int(detection_threshold_)]
@@ -227,6 +233,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                         totalRatio = 1 - (missingCount / totalCount)
                         if totalRatio < ratio:
                             logDict[childName][parentName].append(f'co-occurrence ratio not met ({float("{:.2f}".format(totalRatio))}%)')
+                            #condensedLogDict[childName]['co-occurrence ratio not met'].append(parentName)
                             continue
 
                     # 4.2 check if child only has lower abundance in samples compared to parent
@@ -249,6 +256,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                         totalRatio = 1 - (count / totalCount)
                         if totalRatio < ratio:
                             logDict[childName][parentName].append(f'co-occurrence ratio not met ({float("{:.2f}".format(totalRatio))}%)')
+                            #condensedLogDict[childName]['co-occurrence ratio not met'].append(parentName)
                             continue
                     else:
                         console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
@@ -256,18 +264,22 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
 
                     # 5. check sequence similarity
                     logDict[childName][parentName].append(f'co-occurrence ratio met ({float("{:.2f}".format(totalRatio))}%)')
+                    condensedLogDict[childName]['co-occurrence rate met'].append(parentName)
                     alignment = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
                     distanceCalculation = sum(1 for a, b in zip(alignment[0][0], alignment[0][1]) if a != b)
                     if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) <= int(similarity):
                         logDict[childName][parentName].append(f'sequence similarity threshold not met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100)))}%)')
+                        #condensedLogDict[childName]['sequence similarity threshold not met'].append(parentName)
                         continue
 
                     # if it passes all the checks, we need to determine how it can be combined --> several options
                     # first: if parent not identified as a child previously, we can combine child and parent data
                     logDict[childName][parentName].append(f'sequence similarity threshold met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100)))}%)')
+                    condensedLogDict[childName]['sequence similarity threshold met'].append(parentName)
                     if parentName not in childParentComboDict:
                         childParentComboDict[childName] = parentName
                         logDict[childName][parentName].append(f'parent identified!')
+                        condensedLogDict[childName]['parent identified!'].append(parentName)
                         combinedDict[parentName].append(childName)
                         for item in newParentDict:
                             newValue = int(newParentDict[item]) + int(freqInputDict[childName][item])
@@ -278,6 +290,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                         combinedDict[childParentComboDict[parentName]].append(childName)
                         childParentComboDict[childName] = childParentComboDict[parentName]
                         logDict[childName][parentName].append(f'grandparent identified ({childParentComboDict[parentName]})!')
+                        condensedLogDict[childName]['grandparent identified!'].append(childParentComboDict[parentName])
                         for item in newlyUpdatedCountDict[childParentComboDict[parentName]]:
                             newValueGrandParent = int(newlyUpdatedCountDict[childParentComboDict[parentName]][item]) + int(freqInputDict[childName][item])
                             newlyUpdatedCountDict[childParentComboDict[parentName]][item] = newValueGrandParent
@@ -322,7 +335,6 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
             console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
     
     ## write detailed log file
-    commandLineInput = ' '.join(sys.argv[1:])
     try:
         with open(detailed_log_, 'w') as logOutFile:
             logOutFile.write('#################\n#### SUMMARY ####\n#################\n\n')
@@ -354,7 +366,30 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
     ## write condensed log file
     try:
         with open(condensed_log_, 'w') as logOut:
-            print()
+            logOut.write('#################\n#### SUMMARY ####\n#################\n\n')
+            logOut.write(f'date-time: {formattedTime}\n\n')
+            logOut.write(f'parameters:\n')
+            logOut.write(f'--method: taxon-dependent co-occurrence (default)\n')
+            logOut.write(f'--occurrence type: {occurrence_type_}\n')
+            logOut.write(f'--detection threshold: {detection_threshold_}\n')
+            logOut.write(f'--similarity threshold: {similarity}\n')
+            logOut.write(f'--co-occurrence ratio: {ratio}\n')
+            logOut.write(f'--sample exclusion list: {", ".join(fullNegativeList)}\n\n')
+            logOut.write(f'results:\n')
+            logOut.write(f'--total seqs: {len(seqInputDict)}\n')
+            logOut.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
+            for item in combinedDict:
+                logOut.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
+            logOut.write(f'\ncode: tombRaider {commandLineInput}\n\n\n')
+            logOut.write('############################\n#### CONDENSED ANALYSIS ####\n############################\n\n')
+            for seq in freqTotalCountDict:
+                if seq in condensedLogDict:
+                    logOut.write(f'### analysing: {seq} ###\n')
+                    for subitem in condensedLogDict[seq]:
+                        logOut.write(f'{subitem}:\t')
+                        outputString = ", ".join(condensedLogDict[seq][subitem])
+                        logOut.write(f'{outputString}\n')
+                    logOut.write('\n')
     except TypeError:
         pass
 

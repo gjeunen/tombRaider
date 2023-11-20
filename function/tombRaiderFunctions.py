@@ -105,7 +105,7 @@ def taxToMemory(TAX, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pb
 ########################
 # tombRaider ALGORITHM #
 ########################
-def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, negative, seqname, taxid, pident, qcov, eval_):
+def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     The main function to identify and merge parent-child sequences using the taxon-dependent co-occurrence algorithm
     '''
@@ -206,9 +206,15 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                     # 4. check co-occurrence pattern
                     # 4.1 check if child only appears in samples where parent is present
                     if occurrence_type_ == 'presence-absence':
-                        positiveDetectionsChild = [k for k, v in freqInputDictSubset[childName].items() if v >= int(abundance)]
-                        positiveDetectionsParent = [k for k, v in freqInputDictSubset[parentName].items() if v >= int(abundance)]
-                        if not all(item in positiveDetectionsParent for item in positiveDetectionsChild):
+                        positiveDetectionsChild = [k for k, v in freqInputDictSubset[childName].items() if v >= int(detection_threshold_)]
+                        positiveDetectionsParent = [k for k, v in freqInputDictSubset[parentName].items() if v >= int(detection_threshold_)]
+                        missingCount = 0
+                        for item in positiveDetectionsChild:
+                            if item not in positiveDetectionsParent:
+                                missingCount += 1
+                        totalCount = len(positiveDetectionsParent) + missingCount
+                        totalRatio = 1 - (missingCount / totalCount)
+                        if totalRatio < ratio:
                             continue
 
                     # 4.2 check if child only has lower abundance in samples compared to parent
@@ -217,9 +223,9 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                         for item in freqInputDictSubset[parentName]:
                             parentValue = freqInputDictSubset[parentName][item]
                             childValue = freqInputDictSubset[childName][item]
-                            if parentValue < int(abundance):
+                            if parentValue < int(detection_threshold_):
                                 parentValue = 0
-                            if childValue < int(abundance):
+                            if childValue < int(detection_threshold_):
                                 childValue = 0
                             if parentValue < childValue:
                                 count += 1
@@ -298,7 +304,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
 ####################
 # LULU ALTERNATIVE #
 ####################
-def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity):
+def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity):
     '''
     The function to identify and merge parent-child sequences based on the LULU algorithm (taxon-independent co-occurrence patterns)
     '''
@@ -307,7 +313,7 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
 ####################
 # MRCA ALTERNATIVE #
 ####################
-def mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_):
+def mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, seqname, taxid, pident, qcov, eval_):
     '''
     Thefunction to identify and merge parent-child sequences based on the taxonomic ID of sequences
     '''
@@ -316,7 +322,7 @@ def mostRecentCommonAncestorAlgorithm(frequency_input_, sequence_input_, taxonom
 ###################
 # MRCA CALCULATOR #
 ###################    
-def mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, abundance, similarity, seqname, taxid, pident, qcov, eval_):
+def mrcaCalculatorAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, seqname, taxid, pident, qcov, eval_):
     '''
     The function to calculate the Most Recent Common Ancestor from a standard BLAST output
     '''

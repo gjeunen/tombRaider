@@ -46,6 +46,7 @@ click.rich_click.OPTION_GROUPS = {
                 "--frequency-output",
                 "--sequence-output",
                 "--taxonomy-output",
+                "--log",
             ],
         },
         {
@@ -69,6 +70,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--frequency-output", "frequency_output_", help = "frequency table output file name")
 @click.option("--sequence-output", "sequence_output_", help = "sequence output file name")
 @click.option("--taxonomy-output", "taxonomy_output_", help = "taxonomy output file name")
+@click.option("--log", help = "log output file name")
 @click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern ('presence-absence' or 'abundance' [default])")
 @click.option("--detection-threshold", "detection_threshold_", default = 1, help = "detection threshold to consider true detection")
 @click.option("--similarity", default = 90, help = "similarity threshold needed between child and parent")
@@ -81,7 +83,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--eval", "eval_", default = 8, help = "position of the e-value information in the BLAST input file")
 
 
-def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, log, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefact sequences from metabarcoding datasets.
     
     The algorithm identifies parent-child sequences based on taxonomic ID from raw BLAST outputs, sequence similarity thesholds, and sample co-occurrence. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including taxon-independent co-occurrence models and
@@ -104,7 +106,7 @@ def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequ
     # check --method option is valid and pass parameters to the function file
     if method == 'taxon-dependent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method} (default)")
-        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, log, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
     elif method == 'taxon-independent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method}")
         _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, occurrence_type_, detection_threshold_, similarity)

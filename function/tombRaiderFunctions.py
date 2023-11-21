@@ -504,7 +504,6 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
 
                 # 2. check co-occurrence pattern
                 # 2.1 check if child only appears in samples where parent is present
-                condensedLogDict[childName]['BLAST score threshold met'].append(parentName)
                 if occurrence_type_ == 'presence-absence':
                     positiveDetectionsChild = [k for k, v in freqInputDictSubset[childName].items() if v >= int(detection_threshold_)]
                     positiveDetectionsParent = [k for k, v in freqInputDictSubset[parentName].items() if v >= int(detection_threshold_)]
@@ -683,4 +682,246 @@ def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_i
     Thefunction to identify and merge parent-child sequences based on the taxonomic ID of sequences
     '''
     console = rich.console.Console(stderr=True, highlight=False)
+    columns = [*rich.progress.Progress.get_default_columns(), rich.progress.TimeElapsedColumn()]
+    startTime = datetime.datetime.now()
+    formattedTime = startTime.strftime("%Y-%m-%d %H:%M:%S")
+    commandLineInput = ' '.join(sys.argv[1:])
 
+    # check if all parameters are provided
+    missingArguments = checkParamsNotNone(frequency_input = frequency_input_, taxonomy_input = taxonomy_input_, frequency_output = frequency_output_, taxonomy_output = taxonomy_output_)
+    if len(missingArguments) == 1:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]'--{''.join(missingArguments).replace('_', '-')}' parameter not specified, aborting analysis...[/]\n")
+        exit()
+    elif len(missingArguments) > 1:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]--{' and --'.join(missingArguments).replace('_', '-')} parameters not specified, aborting analysis...[/]\n")
+        exit()
+    
+    # try reading in the files
+    if sequence_input_ == None:
+        try:
+            inputFilePaths = [frequency_input_, sequence_input_, taxonomy_input_]
+            inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
+            with rich.progress.Progress(*columns) as progress_bar:
+                pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
+                freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
+                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+        except TypeError as e:
+            console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
+            exit()
+        except FileNotFoundError as f:
+            console.print(f"[cyan]|               ERROR[/] | [bold yellow]{f}, aborting analysis...[/]\n")
+            exit()
+    else:
+        try:
+            inputFilePaths = [frequency_input_, sequence_input_, taxonomy_input_]
+            inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
+            with rich.progress.Progress(*columns) as progress_bar:
+                pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
+                freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
+                seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, freqTotalCountDict, pbar, progress_bar)
+                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+        except TypeError as e:
+            console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
+            exit()
+        except FileNotFoundError as f:
+            console.print(f"[cyan]|               ERROR[/] | [bold yellow]{f}, aborting analysis...[/]\n")
+            exit()
+
+    ## calculate number of unique combinations for progress bar (x = ((n*n)-n)/2)
+    uniqueCombinations = int(((len(freqTotalCountDict) * len(freqTotalCountDict)) - len(freqTotalCountDict)) / 2)
+
+    ## get list of samples and exclude if {negative} != None
+    fullNegativeList = []
+    if negative == None:
+        freqInputDictSubset = copy.deepcopy(freqInputDict)
+    else:
+        negativeList = negative.split('+')
+        for item in negativeList:
+            if item.startswith('*') and item.endswith('*'):
+                itemMatch = item.rstrip('*').lstrip('*')
+                for sampleName in sampleNameList:
+                    if itemMatch in sampleName:
+                        fullNegativeList.append(sampleName)
+            elif item.startswith('*'):
+                itemMatch = item.lstrip('*')
+                for sampleName in sampleNameList:
+                    if sampleName.endswith(itemMatch):
+                        fullNegativeList.append(sampleName)
+            elif item.endswith('*'):
+                itemMatch = item.rstrip('*')
+                for sampleName in sampleNameList:
+                    if sampleName.startswith(itemMatch):
+                        fullNegativeList.append(sampleName)
+            else:
+                for sampleName in sampleNameList:
+                    if sampleName == item:
+                        fullNegativeList.append(sampleName)
+            freqInputDictSubset = copy.deepcopy(freqInputDict)
+            for item in freqInputDictSubset:
+                for sampleToRemove in fullNegativeList:
+                    if sampleToRemove in freqInputDictSubset[item]:
+                        del freqInputDictSubset[item][sampleToRemove]
+            
+    ## determine parent and child sequences
+    newlyUpdatedCountDict = collections.defaultdict(list)
+    combinedDict = collections.defaultdict(list)
+    childParentComboDict = {}
+    logDict = collections.defaultdict(lambda: collections.defaultdict(list))
+    condensedLogDict = collections.defaultdict(lambda: collections.defaultdict(list))
+    with rich.progress.Progress(*columns) as progress_bar:
+        pbar = progress_bar.add_task(console = console, description="[cyan]|  Identify artefacts[/] |", total=uniqueCombinations)
+
+        # 0. child needs to have lower abundance then parent
+        for parent in range(len(freqTotalCountDict.keys())):
+            parentName = list(freqTotalCountDict.keys())[parent]
+            newParentDict = freqInputDict[parentName]
+            for child in range(parent + 1, len(freqTotalCountDict.keys())):
+                progress_bar.update(pbar, advance=1)
+                childName = list(freqTotalCountDict.keys())[child]
+                try:
+
+                    # 1. check if childName already in childParentComboDict, skip if yes
+                    if childName in childParentComboDict:
+                        continue
+
+                    # 2. check if BLAST taxonomic ID is matching between parent and child
+                    taxIdParentSet = set(taxIdInputDict[parentName])
+                    taxIdChildSet = set(taxIdInputDict[childName])
+                    if not taxIdParentSet.intersection(taxIdChildSet):
+                        try:
+                            logDict[childName][parentName].append(f'non-matching tax IDs ({list(taxIdChildSet)[0]}; {list(taxIdParentSet)[0]})')
+                        except IndexError:
+                            logDict[childName][parentName].append(f'non-matching tax IDs (NA; NA)')
+                        #condensedLogDict[childName]['non-matching tax IDs'].append(parentName)
+                        continue
+
+                    # 3. check BLAST quality on percent identity and query coverage are lower for child than parent
+                    # only check top BLAST hit for now. Probably not accurate, so will need to be altered in future
+                    logDict[childName][parentName].append(f'matching tax IDs ({list(taxIdParentSet.intersection(taxIdChildSet))[0]})')
+                    condensedLogDict[childName]['matching tax IDs'].append(parentName)
+                    if taxPidentInputDict[childName][0] > taxPidentInputDict[parentName][0] and taxQcovInputDict[childName][0] > taxQcovInputDict[parentName][0]:
+                        logDict[childName][parentName].append(f'BLAST score threshold not met ({taxPidentInputDict[childName][0]}, {taxPidentInputDict[parentName][0]}; {taxQcovInputDict[childName][0]}, {taxQcovInputDict[parentName][0]})')
+                        #condensedLogDict[childName]['BLAST score threshold not met'].append(parentName)
+                        continue
+
+                    # if it passes all the checks, we need to determine how it can be combined --> several options
+                    # first: if parent not identified as a child previously, we can combine child and parent data
+                    logDict[childName][parentName].append(f'BLAST score threshold met ({taxPidentInputDict[childName][0]}, {taxPidentInputDict[parentName][0]}; {taxQcovInputDict[childName][0]}, {taxQcovInputDict[parentName][0]})')
+                    condensedLogDict[childName]['BLAST score threshold met'].append(parentName)
+                    if parentName not in childParentComboDict:
+                        childParentComboDict[childName] = parentName
+                        logDict[childName][parentName].append(f'parent identified!')
+                        condensedLogDict[childName]['parent identified!'].append(parentName)
+                        combinedDict[parentName].append(childName)
+                        for item in newParentDict:
+                            newValue = int(newParentDict[item]) + int(freqInputDict[childName][item])
+                            newParentDict[item] = newValue
+
+                    # second: childName not already identified as a child previously and parent identified as a child previously, add childName data to parent of parentName data
+                    elif parentName in childParentComboDict:
+                        combinedDict[childParentComboDict[parentName]].append(childName)
+                        childParentComboDict[childName] = childParentComboDict[parentName]
+                        logDict[childName][parentName].append(f'grandparent identified ({childParentComboDict[parentName]})!')
+                        condensedLogDict[childName]['grandparent identified!'].append(childParentComboDict[parentName])
+                        for item in newlyUpdatedCountDict[childParentComboDict[parentName]]:
+                            newValueGrandParent = int(newlyUpdatedCountDict[childParentComboDict[parentName]][item]) + int(freqInputDict[childName][item])
+                            newlyUpdatedCountDict[childParentComboDict[parentName]][item] = newValueGrandParent
+                except KeyError as k:
+                    console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
+                    exit()
+            if parentName not in childParentComboDict:
+                newlyUpdatedCountDict[parentName] = newParentDict
+
+    ## write updated frequency table to output
+    count = 0
+    with open(frequency_output_, 'w') as outfile:
+        for item in newlyUpdatedCountDict:
+            count += 1
+            if count == 1:
+                title = "\t".join(newlyUpdatedCountDict[item].keys())
+                outfile.write(f'ID\t{title}\n')
+            test = "\t".join(str(value) for value in newlyUpdatedCountDict[item].values())
+            outfile.write(f'{item}\t{test}\n')
+
+    ## write updated sequence file to output
+    if sequence_input_ != None:
+        with open(sequence_output_, 'w') as seqoutfile:
+            for item in newlyUpdatedCountDict:
+                seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
+
+    ## write updated taxonomy file to output
+    with open(taxonomy_output_, 'w') as taxoutfile:
+        for item in newlyUpdatedCountDict:
+            for subitem in taxTotalDict[item]:
+                taxoutfile.write(f'{subitem}\n')
+
+    ## write log
+    console.print(f"[cyan]|  Summary Statistics[/] | [bold yellow][/]")
+    console.print(f"[cyan]|     Total # of ASVs[/] | [bold yellow]{len(seqInputDict)}[/]")
+    console.print(f"[cyan]|Total # of Artefacts[/] | [bold yellow]{len(childParentComboDict)} ({float('{:.2f}'.format(len(childParentComboDict) / len(seqInputDict) * 100))}%)[/]")
+    console.print(f"[cyan]|   Parent-Child List[/] | [bold yellow][/]")
+    for item in combinedDict:
+        spaces = ' ' * (9 - len(item))
+        if len(combinedDict[item]) == 1:
+            console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]child:      {', '.join(combinedDict[item])}[/]")
+        else:
+            console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
+    
+    ## write detailed log file
+    try:
+        with open(detailed_log_, 'w') as logOutFile:
+            logOutFile.write('#################\n#### SUMMARY ####\n#################\n\n')
+            logOutFile.write(f'date-time: {formattedTime}\n\n')
+            logOutFile.write(f'parameters:\n')
+            logOutFile.write(f'--method: taxon-dependent co-occurrence (default)\n')
+            logOutFile.write(f'--occurrence type: {occurrence_type_}\n')
+            logOutFile.write(f'--detection threshold: {detection_threshold_}\n')
+            logOutFile.write(f'--similarity threshold: {similarity}\n')
+            logOutFile.write(f'--co-occurrence ratio: {ratio}\n')
+            logOutFile.write(f'--sample exclusion list: {", ".join(fullNegativeList)}\n\n')
+            logOutFile.write(f'results:\n')
+            logOutFile.write(f'--total seqs: {len(seqInputDict)}\n')
+            logOutFile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
+            for item in combinedDict:
+                logOutFile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
+            logOutFile.write(f'\ncode: tombRaider {commandLineInput}\n\n\n')
+            logOutFile.write('###########################\n#### DETAILED ANALYSIS ####\n###########################\n\n')
+            for item in logDict:
+                logOutFile.write(f'### analysing: {item} ###\n')
+                for subitem in logDict[item]:
+                    logOutFile.write(f'{subitem}:\t')
+                    outputString = "\t".join(logDict[item][subitem])
+                    logOutFile.write(f'{outputString}\n')
+                logOutFile.write('\n')
+    except TypeError:
+        pass
+
+    ## write condensed log file
+    try:
+        with open(condensed_log_, 'w') as logOut:
+            logOut.write('#################\n#### SUMMARY ####\n#################\n\n')
+            logOut.write(f'date-time: {formattedTime}\n\n')
+            logOut.write(f'parameters:\n')
+            logOut.write(f'--method: taxon-dependent co-occurrence (default)\n')
+            logOut.write(f'--occurrence type: {occurrence_type_}\n')
+            logOut.write(f'--detection threshold: {detection_threshold_}\n')
+            logOut.write(f'--similarity threshold: {similarity}\n')
+            logOut.write(f'--co-occurrence ratio: {ratio}\n')
+            logOut.write(f'--sample exclusion list: {", ".join(fullNegativeList)}\n\n')
+            logOut.write(f'results:\n')
+            logOut.write(f'--total seqs: {len(seqInputDict)}\n')
+            logOut.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
+            for item in combinedDict:
+                logOut.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
+            logOut.write(f'\ncode: tombRaider {commandLineInput}\n\n\n')
+            logOut.write('############################\n#### CONDENSED ANALYSIS ####\n############################\n\n')
+            for seq in freqTotalCountDict:
+                if seq in condensedLogDict:
+                    logOut.write(f'### analysing: {seq} ###\n')
+                    for subitem in condensedLogDict[seq]:
+                        logOut.write(f'{subitem}:\t')
+                        outputString = ", ".join(condensedLogDict[seq][subitem])
+                        logOut.write(f'{outputString}\n')
+                    logOut.write('\n')
+    except TypeError:
+        pass

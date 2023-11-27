@@ -11,7 +11,7 @@ from Bio import pairwise2
 import sys
 import copy
 import datetime
-
+import numpy as np
 
 ########################
 # tombRaider FUNCTIONS #
@@ -102,6 +102,76 @@ def taxToMemory(TAX, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pb
             taxPidentInputDict[item] = ''
             taxTotalDict[item] = ''
     return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar
+
+def smith_waterman(seq1, seq2, match_score=2, mismatch_penalty=-5, gap_penalty=-5):
+    '''
+    local alignment function in base python (except Numpy) based on the Smith-Waterman algorithm
+    '''
+    len_seq1, len_seq2 = len(seq1), len(seq2)
+    # Initialize the scoring matrix with zeros
+    score_matrix = np.zeros((len_seq1 + 1, len_seq2 + 1), dtype=int)
+    # Fill in the scoring matrix
+    for i in range(1, len_seq1 + 1):
+        for j in range(1, len_seq2 + 1):
+            match = score_matrix[i - 1, j - 1] + (match_score if seq1[i - 1] == seq2[j - 1] else mismatch_penalty)
+            delete = score_matrix[i - 1, j] + gap_penalty
+            insert = score_matrix[i, j - 1] + gap_penalty
+            score_matrix[i, j] = max(0, match, delete, insert)
+    # Find the maximum score in the matrix
+    max_i, max_j = np.unravel_index(score_matrix.argmax(), score_matrix.shape)
+    max_score = score_matrix[max_i, max_j]
+    # Trace back to find the alignment
+    alignment_seq1, alignment_seq2 = "", ""
+    while score_matrix[max_i, max_j] != 0:
+        if max_i > 0 and max_j > 0 and score_matrix[max_i, max_j] == score_matrix[max_i - 1, max_j - 1] + (match_score if seq1[max_i - 1] == seq2[max_j - 1] else mismatch_penalty):
+            alignment_seq1 = seq1[max_i - 1] + alignment_seq1
+            alignment_seq2 = seq2[max_j - 1] + alignment_seq2
+            max_i -= 1
+            max_j -= 1
+        elif max_i > 0 and score_matrix[max_i, max_j] == score_matrix[max_i - 1, max_j] + gap_penalty:
+            alignment_seq1 = seq1[max_i - 1] + alignment_seq1
+            alignment_seq2 = "-" + alignment_seq2
+            max_i -= 1
+        elif max_j > 0 and score_matrix[max_i, max_j] == score_matrix[max_i, max_j - 1] + gap_penalty:
+            alignment_seq1 = "-" + alignment_seq1
+            alignment_seq2 = seq2[max_j - 1] + alignment_seq2
+            max_j -= 1
+    return alignment_seq1, alignment_seq2, max_score
+
+def needleman_wunsch(seq1, seq2, gap_penalty=-1, match_score=2, mismatch_penalty=-1):
+    '''
+    global alignment function in base python (except Numpy) based on the Needleman-Wunsch algorithm
+    '''
+    m, n = len(seq1), len(seq2)
+    # Initialize the dynamic programming table
+    F = np.zeros((m + 1, n + 1), dtype=np.int32)
+    F[:, 0] = gap_penalty * np.arange(m + 1)
+    F[0, :] = gap_penalty * np.arange(n + 1)
+    # Fill in the dynamic programming table using vectorized operations
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            score1 = F[i-1, j-1] + (match_score if seq1[i-1] == seq2[j-1] else mismatch_penalty)
+            score2 = F[i-1, j] + gap_penalty
+            score3 = F[i, j-1] + gap_penalty
+            F[i, j] = np.max([score1, score2, score3])
+    # Trace back through the dynamic programming table to find the optimal alignment
+    align1, align2 = "", ""
+    i, j = m, n
+    while i > 0 or j > 0:
+        if i > 0 and j > 0 and F[i, j] == F[i-1, j-1] + (match_score if seq1[i-1] == seq2[j-1] else mismatch_penalty):
+            align1 = seq1[i-1] + align1
+            align2 = seq2[j-1] + align2
+            i -= 1
+            j -= 1
+        elif i > 0 and F[i, j] == F[i-1, j] + gap_penalty:
+            align1 = seq1[i-1] + align1
+            align2 = '-' + align2
+            i -= 1
+        else:
+            align1 = '-' + align1
+            align2 = seq2[j-1] + align2
+            j -= 1
+    return align1, align2
     
 ########################
 # tombRaider ALGORITHM #
@@ -265,8 +335,8 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
                     # 5. check sequence similarity
                     logDict[childName][parentName].append(f'co-occurrence ratio met ({float("{:.2f}".format(totalRatio))}%)')
                     condensedLogDict[childName]['co-occurrence rate met'].append(parentName)
-                    alignment = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
-                    distanceCalculation = sum(1 for a, b in zip(alignment[0][0], alignment[0][1]) if a != b)
+                    alignmentSeq1, alignmentSeq2 = needleman_wunsch(seqInputDict[parentName], seqInputDict[childName])
+                    distanceCalculation = sum(1 for a, b in zip(alignmentSeq1, alignmentSeq2) if a != b)
                     if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) <= int(similarity):
                         logDict[childName][parentName].append(f'sequence similarity threshold not met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100)))}%)')
                         #condensedLogDict[childName]['sequence similarity threshold not met'].append(parentName)
@@ -547,8 +617,8 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
                 # 3. check sequence similarity
                 logDict[childName][parentName].append(f'co-occurrence ratio met ({float("{:.2f}".format(totalRatio))}%)')
                 condensedLogDict[childName]['co-occurrence rate met'].append(parentName)
-                alignment = pairwise2.align.globalxx(seqInputDict[parentName], seqInputDict[childName])
-                distanceCalculation = sum(1 for a, b in zip(alignment[0][0], alignment[0][1]) if a != b)
+                alignmentSeq1, alignmentSeq2 = needleman_wunsch(seqInputDict[parentName], seqInputDict[childName])
+                distanceCalculation = sum(1 for a, b in zip(alignmentSeq1, alignmentSeq2) if a != b)
                 if 100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100) <= int(similarity):
                     logDict[childName][parentName].append(f'sequence similarity threshold not met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100)))}%)')
                     #condensedLogDict[childName]['sequence similarity threshold not met'].append(parentName)

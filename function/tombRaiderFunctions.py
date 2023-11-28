@@ -7,7 +7,6 @@ import collections
 import rich
 import rich.progress
 import os
-from Bio import pairwise2
 import sys
 import copy
 import datetime

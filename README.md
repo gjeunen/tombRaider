@@ -32,3 +32,21 @@ Once the GitHub files are downloaded, ensure the following Python3 modules with 
 2. [rich](https://rich.readthedocs.io/en/stable/introduction.html) (*v 13.3.5*)
 3. [rich-click](https://github.com/ewels/rich-click) (*v 1.6.1*)
 4. [numpy](https://numpy.org) (*v 1.25.2*)
+
+Once all dependencies are installed, you can make *tombRaider* globally accessible in your OS using the following command:
+
+```{code-block} bash
+export PATH="/path/to/tombRaider/folder:$PATH"
+```
+
+Substitute `/path/to/crabs/folder` with the actual path to the repo folder on your system. Adding this line to the `.bash_profile`, `.bashrc`, or `.zshrc` file in your home directory will keep *tombRaider* globally accessible, even when closing the Terminal application.
+
+### 2.4 Check the installation
+
+To check if the installation was successful, type the following command into the Terminal to prompt the help information:
+
+```{code-block} bash
+tombRaider -h
+```
+
+![tombRaider help prompt](figures/help-prompt.png)

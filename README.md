@@ -39,7 +39,7 @@ Once all dependencies are installed, you can make *tombRaider* globally accessib
 export PATH="/path/to/tombRaider/folder:$PATH"
 ```
 
-Substitute `/path/to/crabs/folder` with the actual path to the repo folder on your system. Adding this line to the `.bash_profile`, `.bashrc`, or `.zshrc` file in your home directory will keep *tombRaider* globally accessible, even when closing the Terminal application.
+Substitute `/path/to/tombRaider/folder` with the actual path to the repo folder on your system. Adding this line to the `.bash_profile`, `.bashrc`, or `.zshrc` file in your home directory will keep *tombRaider* globally accessible, even when closing the Terminal application.
 
 ### 2.4 Check the installation
 

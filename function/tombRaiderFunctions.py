@@ -175,7 +175,7 @@ def needleman_wunsch(seq1, seq2, gap_penalty=-1, match_score=2, mismatch_penalty
 ########################
 # tombRaider ALGORITHM #
 ########################
-def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     The main function to identify and merge parent-child sequences using the taxon-dependent co-occurrence algorithm
     '''
@@ -186,23 +186,26 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
     commandLineInput = ' '.join(sys.argv[1:])
 
     # check if all parameters are provided
-    missingArguments = checkParamsNotNone(frequency_input = frequency_input_, sequence_input = sequence_input_, taxonomy_input = taxonomy_input_, frequency_output = frequency_output_, sequence_output = sequence_output_, taxonomy_output = taxonomy_output_)
+    missingArguments = checkParamsNotNone(frequency_input = frequency_input_, sequence_input = sequence_input_, frequency_output = frequency_output_, sequence_output = sequence_output_)
     if len(missingArguments) == 1:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]'--{''.join(missingArguments).replace('_', '-')}' parameter not specified, aborting analysis...[/]\n")
         exit()
     elif len(missingArguments) > 1:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]--{' and --'.join(missingArguments).replace('_', '-')} parameters not specified, aborting analysis...[/]\n")
         exit()
+    
+    # check taxonomy type
+        
 
     # try reading in the files
     try:
-        inputFilePaths = [frequency_input_, sequence_input_, taxonomy_input_]
+        inputFilePaths = [frequency_input_, sequence_input_, blast_input_]
         inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
         with rich.progress.Progress(*columns) as progress_bar:
             pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
             freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
             seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, freqTotalCountDict, pbar, progress_bar)
-            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()
@@ -386,7 +389,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
             seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
 
     ## write updated taxonomy file to output
-    with open(taxonomy_output_, 'w') as taxoutfile:
+    with open(blast_output_, 'w') as taxoutfile:
         for item in newlyUpdatedCountDict:
             for subitem in taxTotalDict[item]:
                 taxoutfile.write(f'{subitem}\n')
@@ -465,7 +468,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxon
 ####################
 # LULU ALTERNATIVE #
 ####################
-def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     The function to identify and merge parent-child sequences based on the LULU algorithm (taxon-independent co-occurrence patterns)
     '''
@@ -485,7 +488,7 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
         exit()
     
     # try reading in the files
-    if taxonomy_input_ == None:
+    if blast_input_ == None:
         try:
             inputFilePaths = [frequency_input_, sequence_input_]
             inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
@@ -501,13 +504,13 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
             exit()
     else:
         try:
-            inputFilePaths = [frequency_input_, sequence_input_, taxonomy_input_]
+            inputFilePaths = [frequency_input_, sequence_input_, blast_input_]
             inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
             with rich.progress.Progress(*columns) as progress_bar:
                 pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
                 freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
                 seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, freqTotalCountDict, pbar, progress_bar)
-                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
         except TypeError as e:
             console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
             exit()
@@ -666,8 +669,8 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
             seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
 
     ## write updated taxonomy file to output
-    if taxonomy_input_ != None:
-        with open(taxonomy_output_, 'w') as taxoutfile:
+    if blast_input_ != None:
+        with open(blast_output_, 'w') as taxoutfile:
             for item in newlyUpdatedCountDict:
                 for subitem in taxTotalDict[item]:
                     taxoutfile.write(f'{subitem}\n')
@@ -746,7 +749,7 @@ def taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, tax
 #############################
 # TAXON MERGING ALTERNATIVE #
 #############################
-def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
     '''
     Thefunction to identify and merge parent-child sequences based on the taxonomic ID of sequences
     '''
@@ -757,7 +760,7 @@ def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_i
     commandLineInput = ' '.join(sys.argv[1:])
 
     # check if all parameters are provided
-    missingArguments = checkParamsNotNone(frequency_input = frequency_input_, taxonomy_input = taxonomy_input_, frequency_output = frequency_output_, taxonomy_output = taxonomy_output_)
+    missingArguments = checkParamsNotNone(frequency_input = frequency_input_, taxonomy_input = blast_input_, frequency_output = frequency_output_, taxonomy_output = blast_output_)
     if len(missingArguments) == 1:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]'--{''.join(missingArguments).replace('_', '-')}' parameter not specified, aborting analysis...[/]\n")
         exit()
@@ -768,12 +771,12 @@ def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_i
     # try reading in the files
     if sequence_input_ == None:
         try:
-            inputFilePaths = [frequency_input_, sequence_input_, taxonomy_input_]
+            inputFilePaths = [frequency_input_, sequence_input_, blast_input_]
             inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
             with rich.progress.Progress(*columns) as progress_bar:
                 pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
                 freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
-                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
         except TypeError as e:
             console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
             exit()
@@ -782,13 +785,13 @@ def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_i
             exit()
     else:
         try:
-            inputFilePaths = [frequency_input_, sequence_input_, taxonomy_input_]
+            inputFilePaths = [frequency_input_, sequence_input_, blast_input_]
             inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
             with rich.progress.Progress(*columns) as progress_bar:
                 pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
                 freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
                 seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, freqTotalCountDict, pbar, progress_bar)
-                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(taxonomy_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
         except TypeError as e:
             console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
             exit()
@@ -919,7 +922,7 @@ def taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_i
                 seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
 
     ## write updated taxonomy file to output
-    with open(taxonomy_output_, 'w') as taxoutfile:
+    with open(blast_output_, 'w') as taxoutfile:
         for item in newlyUpdatedCountDict:
             for subitem in taxTotalDict[item]:
                 taxoutfile.write(f'{subitem}\n')

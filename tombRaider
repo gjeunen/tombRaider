@@ -37,7 +37,10 @@ click.rich_click.OPTION_GROUPS = {
             "options": [
                 "--frequency-input",
                 "--sequence-input",
-                "--taxonomy-input",
+                "--blast-input",
+                "--bold-input",
+                "--sintax-input",
+                "--idtaxa-input",
             ],
         },
         {
@@ -45,7 +48,10 @@ click.rich_click.OPTION_GROUPS = {
             "options": [
                 "--frequency-output",
                 "--sequence-output",
-                "--taxonomy-output",
+                "--blast-output",
+                "--bold-output",
+                "--sintax-output",
+                "--idtaxa-output",
                 "--condensed-log",
                 "--detailed-log",
             ],
@@ -67,10 +73,16 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--method", default = 'taxon-dependent co-occurrence', help = "merging method ('taxon-dependent co-occurrence' [default], 'taxon-independent co-occurrence', 'taxon-dependent merging')")
 @click.option("--frequency-input", "frequency_input_", help = "frequency table input file name")
 @click.option("--sequence-input", "sequence_input_", help = "sequence input file name")
-@click.option("--taxonomy-input", "taxonomy_input_", help = "taxonomy input file name")
+@click.option("--blast-input", "blast_input_", help = "blast input file name")
+@click.option("--bold-input", "bold_input_", help = "bold input file name")
+@click.option("--sintax-input", "sintax_input_", help = "sintax input file name")
+@click.option("--idtaxa-input", "idtax_input_", help = "idtaxa input file name")
 @click.option("--frequency-output", "frequency_output_", help = "frequency table output file name")
 @click.option("--sequence-output", "sequence_output_", help = "sequence output file name")
-@click.option("--taxonomy-output", "taxonomy_output_", help = "taxonomy output file name")
+@click.option("--blast-output", "blast_output_", help = "blast output file name")
+@click.option("--bold-output", "bold_output_", help = "bold output file name")
+@click.option("--sintax-output", "sintax_output_", help = "sintax output file name")
+@click.option("--idtaxa-output", "idtaxa_output_", help = "idtaxa output file name")
 @click.option("--condensed-log", "condensed_log_", help = "condensed log output file name")
 @click.option("--detailed-log", "detailed_log_", help = "detailed log output file name")
 @click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern ('presence-absence' or 'abundance' [default])")
@@ -85,10 +97,10 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--eval", "eval_", default = 8, help = "position of the e-value information in the BLAST input file")
 
 
-def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
-    """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefact sequences from metabarcoding datasets.
+def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+    """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefacts from metabarcoding datasets.
     
-    The algorithm identifies parent-child sequences based on taxonomic ID from raw BLAST outputs, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
+    The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
     taxon-dependent merging.
     
 
@@ -107,13 +119,13 @@ def tombRaider(method, frequency_input_, sequence_input_, taxonomy_input_, frequ
     # check --method option is valid and pass parameters to the function file
     if method == 'taxon-dependent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method} (default)")
-        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
     elif method == 'taxon-independent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
     elif method == 'taxon-dependent merging':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, taxonomy_input_, frequency_output_, sequence_output_, taxonomy_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
     elif method == None:
         console.print("[cyan]|              Method[/] | [bold yellow]parameter --method not specified, aborting analysis...[/]")
         exit()

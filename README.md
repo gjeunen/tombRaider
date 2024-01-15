@@ -50,3 +50,13 @@ tombRaider -h
 ```
 
 ![tombRaider help prompt](figures/help-prompt.png)
+
+Additionally, you can run *tombRaider* on example files in the `exampleFiles` subdirectory by executing:
+
+```{code-block} bash
+tombRaider --example-run
+```
+
+## 3. Input files
+
+An example of all input files can be found in the `exampleFiles` subdirectory on GitHub or where *tombRaider* is installed on your OS. This file list can help determine the file structures required by *tombRaider* when formatting errors are preventing a successful execution of *tombRaider* on your local files.

@@ -11,6 +11,7 @@ import sys
 import copy
 import datetime
 import numpy as np
+import pandas as pd
 
 ########################
 # tombRaider FUNCTIONS #
@@ -35,28 +36,40 @@ def checkTaxonomyFiles(blast_input_, bold_input_, sintax_input_, idtaxa_input_):
             break
     return taxonomyInputFile, taxonomyFileType
 
-def freqToMemory(FREQ, pbar, progress_bar):
+def freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, omit_rows_, omit_columns_, sort_):
     '''
     Function parsing the frequency table input file into a dictionary
     '''
-    freqInputDict = collections.defaultdict(dict)
-    freqTotalCountDict = {}
-    sampleNameList = []
-    with open(FREQ, 'r') as freqFile:
-        for line in freqFile:
-            progress_bar.update(pbar, advance=len(line))
-            line = line.rstrip('\n')
-            if line.startswith('#'):
-                sampleNameList = line.split('\t')[1:]
-            else:
-                zotuName = line.split('\t')[0]
-                sumCount = 0
-                for i in range(len(sampleNameList)):
-                    freqInputDict[zotuName][sampleNameList[i]] = int(line.split('\t')[i + 1])
-                    sumCount += int(line.split('\t')[i + 1])
-                freqTotalCountDict[zotuName] = sumCount
-    freqTotalCountSortedDict = dict(sorted(freqTotalCountDict.items(), key = lambda x:x[1], reverse = True))
-    return freqInputDict, freqTotalCountSortedDict, sampleNameList, pbar, progress_bar
+    frequencyTable = pd.read_csv(frequency_input_, sep='\t', index_col=0)
+    progress_bar.update(pbar, advance=os.path.getsize(frequency_input_))
+    if omit_rows_ != None:
+        rowList = omit_rows_.split(',')
+        try:
+            frequencyTable = frequencyTable.drop(rowList)
+        except KeyError as k:
+            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
+            exit()
+    if omit_columns_ != None:
+        colList = omit_columns_.split(',')
+        try:
+            frequencyTable = frequencyTable.drop(colList, axis = 1)
+        except KeyError as k:
+            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
+            exit()
+    if taxa_are_rows_ != True:
+        frequencyTable = frequencyTable.transpose()
+    sortOptions = {
+        'total read count': frequencyTable.sum(axis = 1),
+        'average read count': frequencyTable.mean(axis = 1),
+        'detections': (frequencyTable > 0).sum(axis = 1),
+    }
+    if sort_ in sortOptions:
+        #freqTotalCountSortedDict = sortOptions[sort_].sort_values(ascending = False).to_dict()
+        frequencyTable = frequencyTable.loc[sortOptions[sort_].sort_values(ascending = False).index]
+    else:
+        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]option for '--sort' not identified, aborting analysis...[/]\n")
+        exit()
+    return frequencyTable, pbar, progress_bar
 
 def zotuToMemory(ZOTU, freqTotalCountDict, pbar, progress_bar):
     '''
@@ -191,7 +204,7 @@ def needleman_wunsch(seq1, seq2, gap_penalty=-1, match_score=2, mismatch_penalty
 ########################
 # tombRaider ALGORITHM #
 ########################
-def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_, taxa_are_rows_, omit_rows_, omit_columns_, sort_):
     '''
     The main function to identify and merge parent-child sequences using the taxon-dependent co-occurrence algorithm
     '''
@@ -222,9 +235,9 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
         inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
         with rich.progress.Progress(*columns) as progress_bar:
             pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
-            freqInputDict, freqTotalCountDict, sampleNameList, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar)
-            seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, freqTotalCountDict, pbar, progress_bar)
-            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+            frequencyTable, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
+            seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
+            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()

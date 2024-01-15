@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import os
 import rich
 import rich_click as click
 from function import __version__
@@ -57,6 +58,15 @@ click.rich_click.OPTION_GROUPS = {
             ],
         },
         {
+            "name": "Frequency file details",
+            "options": [
+                "--taxa-are-rows",
+                "--omit-rows",
+                "--omit-columns",
+                "--sort",
+            ],
+        },
+        {
             "name": "Taxonomy file details",
             "options": [
                 "--seqname",
@@ -95,9 +105,15 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--pident", default = 5, help = "position of the percent identity information in the BLAST input file")
 @click.option("--qcov", default = 7, help = "position of the query coverage information in the BLAST input file")
 @click.option("--eval", "eval_", default = 8, help = "position of the e-value information in the BLAST input file")
+@click.option("--taxa-are-rows", "taxa_are_rows_", default = True, help = "True: column headers = samples; False: column headers = taxa")
+@click.option("--omit-rows", "omit_rows_", help = "a list of row labels to drop from the frequency table")
+@click.option("--omit-columns", "omit_columns_", help = "a list of column labels to drop from the frequency table")
+@click.option("--sort", "sort_", help = "method to sort input files ('total read count', 'average read count', 'detections')")
+@click.option("--example-run", "example_run_", is_flag = True, help = "run tombRaider using the example files")
 
 
-def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_):
+
+def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefacts from metabarcoding datasets.
     
     The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
@@ -116,16 +132,21 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
     console = rich.console.Console(stderr=True, highlight=False)
     console.print(f"\n[yellow]/[/][cyan]/[/][yellow]/[/] [bold][link=https://github.com/gjeunen/tombRaider]tombRaider[/link][/] | v{__version__}\n")
 
+    # check if example-run needs to be executed
+    if example_run_:
+        print(os.path.realpath('tombRaider'))
+        exit()
+
     # check --method option is valid and pass parameters to the function file
     if method == 'taxon-dependent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method} (default)")
-        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
     elif method == 'taxon-independent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
     elif method == 'taxon-dependent merging':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_)
+        _ = taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
     elif method == None:
         console.print("[cyan]|              Method[/] | [bold yellow]parameter --method not specified, aborting analysis...[/]")
         exit()

@@ -67,7 +67,7 @@ click.rich_click.OPTION_GROUPS = {
             ],
         },
         {
-            "name": "Taxonomy file details",
+            "name": "BLAST file details",
             "options": [
                 "--seqname",
                 "--taxid",

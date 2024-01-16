@@ -71,7 +71,7 @@ def freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, 
         exit()
     return frequencyTable, pbar, progress_bar
 
-def zotuToMemory(ZOTU, freqTotalCountDict, pbar, progress_bar):
+def zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar):
     '''
     Function parsing the ZOTU sequence input file into a dictionary
     '''
@@ -79,7 +79,7 @@ def zotuToMemory(ZOTU, freqTotalCountDict, pbar, progress_bar):
     count = 0
     seqName = ''
     sequence = ''
-    with open(ZOTU, 'r') as seqFile:
+    with open(sequence_input_, 'r') as seqFile:
         for line in seqFile:
             progress_bar.update(pbar, advance=len(line))
             line = line.rstrip('\n')
@@ -93,10 +93,28 @@ def zotuToMemory(ZOTU, freqTotalCountDict, pbar, progress_bar):
             else:
                 sequence += line
     seqInputDict[seqName] = sequence
-    for item in freqTotalCountDict:
+    for item in frequencyTable.index.tolist():
         if item not in seqInputDict:
             seqInputDict[item] = ''
     return seqInputDict, pbar, progress_bar
+
+def blastToMemory():
+    '''
+    Function parsing the BLAST taxonomy file
+    For now it only takes in the specific outfmt "6" structure
+    '''
+
+def boldToMemory():
+    '''
+    '''
+
+def sintaxToMemory():
+    '''
+    '''
+
+def idtaxaToMemory():
+    '''
+    '''
 
 def taxToMemory(TAX, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar):
     '''
@@ -237,7 +255,17 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
             frequencyTable, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
             seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
-            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxToMemory(blast_input_, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+            if taxonomyFileType == 'blast':
+                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(blast_input_, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+            elif taxonomyFileType == 'bold':
+                console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]BOLD format currently not supported, aborting analysis...[/]\n")
+                exit()
+            elif taxonomyFileType == 'sintax':
+                console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]SINTAX format currently not supported, aborting analysis...[/]\n")
+                exit()
+            elif taxonomyFileType == 'idtaxa':
+                console.print(f"[\ncyan]|               ERROR[/] | [bold yellow]IDTAXA format currently not supported, aborting analysis...[/]\n")
+                exit()
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()

@@ -10,7 +10,7 @@ import os
 import sys
 import copy
 import datetime
-from tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles, freqToMemory, zotuToMemory, blastToMemory, boldToMemory, sintaxToMemory, idtaxaToMemory, taxToMemory, smith_waterman, needleman_wunsch
+from function.tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles, freqToMemory, zotuToMemory, taxonomyProcessing, blastToMemory, boldToMemory, sintaxToMemory, idtaxaToMemory, taxToMemory, smith_waterman, needleman_wunsch
 
 
     
@@ -50,17 +50,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
             frequencyTable, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
             seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
-            if taxonomyFileType == 'blast':
-                taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(blast_input_, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
-            elif taxonomyFileType == 'bold':
-                console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]BOLD format currently not supported, aborting analysis...[/]\n")
-                exit()
-            elif taxonomyFileType == 'sintax':
-                console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]SINTAX format currently not supported, aborting analysis...[/]\n")
-                exit()
-            elif taxonomyFileType == 'idtaxa':
-                console.print(f"[\ncyan]|               ERROR[/] | [bold yellow]IDTAXA format currently not supported, aborting analysis...[/]\n")
-                exit()
+            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyProcessing(taxonomyFileType, taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar, console)
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()

@@ -4,7 +4,6 @@
 # IMPORT MODULES #
 ##################
 import collections
-import rich.progress
 import os
 import numpy as np
 import pandas as pd
@@ -94,11 +93,42 @@ def zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar):
             seqInputDict[item] = ''
     return seqInputDict, pbar, progress_bar
 
-def blastToMemory():
+def blastToMemory(taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar):
     '''
     Function parsing the BLAST taxonomy file
     For now it only takes in the specific outfmt "6" structure
     '''
+    taxIdInputDict = collections.defaultdict(list)
+    taxQcovInputDict = collections.defaultdict(list)
+    taxPidentInputDict = collections.defaultdict(list)
+    taxTotalDict = collections.defaultdict(list)
+    taxEvalInputDict = collections.defaultdict(list)
+    with open(taxonomyInputFile, 'r') as taxFile:
+        for line in taxFile:
+            progress_bar.update(pbar, advance=len(line))
+            line = line.rstrip('\n')
+            seqName = line.split('\t')[seqname]
+            taxQcov = int(line.split('\t')[qcov])
+            if taxQcov == 100:
+                taxPident = float(line.split('\t')[pident])
+            else:
+                print()
+            taxID = line.split('\t')[taxid]
+            evalNumber = float(line.split('\t')[eval_])
+            taxTotalDict[seqName].append(line)
+            print(taxPident, taxQcov, taxPident/taxQcov*100)
+            if all(evalNumber <= item for item in taxEvalInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
+                taxIdInputDict[seqName].append(taxID)
+                taxQcovInputDict[seqName].append(taxQcov)
+                taxPidentInputDict[seqName].append(taxPident)
+                taxEvalInputDict[seqName].append(evalNumber)
+    for item in frequencyTable.index.tolist():
+        if item not in taxIdInputDict:
+            taxIdInputDict[item] = ''
+            taxQcovInputDict[item] = ''
+            taxPidentInputDict[item] = ''
+            taxTotalDict[item] = ''
+    return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar
 
 def boldToMemory():
     '''
@@ -111,6 +141,19 @@ def sintaxToMemory():
 def idtaxaToMemory():
     '''
     '''
+
+def taxonomyProcessing(taxonomyFileType, taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar, console):
+    '''
+    Function parsing taxonomy input file 100*(186/198)
+    '''
+    if taxonomyFileType == 'blast':
+        taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
+    elif taxonomyFileType == 'bold':
+        test = boldToMemory(frequencyTable)
+    elif taxonomyFileType == 'sintax':
+        test = sintaxToMemory(seqname)
+    elif taxonomyFileType == 'idtaxa':
+        test = idtaxaToMemory(eval_)
 
 def taxToMemory(TAX, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar):
     '''

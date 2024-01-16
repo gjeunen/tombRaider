@@ -1,11 +1,13 @@
 #! /usr/bin/env python3
 
+##################
+# IMPORT MODULES #
+##################
 import os
 import rich
 import rich_click as click
 from function import __version__
-from function.tombRaiderFunctions import taxonDependentCoOccurrenceAlgorithm, taxonIndependentCoOccurrenceAlgorithm, taxonDependentMergingAlgorithm
-#from rich import print
+from function.tombRaiderAlgorithm import taxonDependentCoOccurrenceAlgorithm, taxonIndependentCoOccurrenceAlgorithm, taxonDependentMergingAlgorithm
 
 # Configuration for rich-click CLI help
 click.rich_click.USE_RICH_MARKUP = True

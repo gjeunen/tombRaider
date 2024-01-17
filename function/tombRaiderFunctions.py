@@ -93,42 +93,57 @@ def zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar):
             seqInputDict[item] = ''
     return seqInputDict, pbar, progress_bar
 
-def blastToMemory(taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar):
+def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console):
     '''
     Function parsing the BLAST taxonomy file
     For now it only takes in the specific outfmt "6" structure
     '''
+    neededBlastInfo = {'qaccver': None,
+                       'qcovs': None,
+                       'pident': None,
+                       'staxid': None,
+                       'evalue': None,
+                       'length': None,
+                       'gapopen': None,
+                       'mismatch': None,
+    }
+    blastFormattingList = blast_format_.split(' ')
+    if blastFormattingList[0] != '6':
+        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]blast format identified as '{blastFormattingList[0]}', only format '6' is supported, aborting analysis...[/]\n")
+        exit()
+    for item in neededBlastInfo:
+        if item in blastFormattingList:
+            neededBlastInfo[item] = blastFormattingList.index(item) - 1
+        else:
+            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]'{item}' not found in BLAST input file, aborting analysis...[/]\n")
+            exit()
     taxIdInputDict = collections.defaultdict(list)
-    taxQcovInputDict = collections.defaultdict(list)
     taxPidentInputDict = collections.defaultdict(list)
-    taxTotalDict = collections.defaultdict(list)
+    rawTaxDict = collections.defaultdict(list)
     taxEvalInputDict = collections.defaultdict(list)
     with open(taxonomyInputFile, 'r') as taxFile:
         for line in taxFile:
             progress_bar.update(pbar, advance=len(line))
             line = line.rstrip('\n')
-            seqName = line.split('\t')[seqname]
-            taxQcov = int(line.split('\t')[qcov])
+            seqName = line.split('\t')[neededBlastInfo['qaccver']]
+            taxQcov = int(line.split('\t')[neededBlastInfo['qcovs']])
             if taxQcov == 100:
-                taxPident = float(line.split('\t')[pident])
+                taxPident = float(line.split('\t')[neededBlastInfo['pident']])
             else:
-                print()
-            taxID = line.split('\t')[taxid]
-            evalNumber = float(line.split('\t')[eval_])
-            taxTotalDict[seqName].append(line)
-            print(taxPident, taxQcov, taxPident/taxQcov*100)
+                taxPident = float(100 * ((int(line.split('\t')[neededBlastInfo['length']]) - int(line.split('\t')[neededBlastInfo['mismatch']]) - int(line.split('\t')[neededBlastInfo['gapopen']])) / len(seqInputDict[seqName])))
+            taxID = line.split('\t')[neededBlastInfo['staxid']]
+            evalNumber = float(line.split('\t')[neededBlastInfo['evalue']])
+            rawTaxDict[seqName].append(line)
             if all(evalNumber <= item for item in taxEvalInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
                 taxIdInputDict[seqName].append(taxID)
-                taxQcovInputDict[seqName].append(taxQcov)
                 taxPidentInputDict[seqName].append(taxPident)
                 taxEvalInputDict[seqName].append(evalNumber)
     for item in frequencyTable.index.tolist():
         if item not in taxIdInputDict:
             taxIdInputDict[item] = ''
-            taxQcovInputDict[item] = ''
             taxPidentInputDict[item] = ''
-            taxTotalDict[item] = ''
-    return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar
+            rawTaxDict[item] = ''
+    return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
 def boldToMemory():
     '''
@@ -142,51 +157,12 @@ def idtaxaToMemory():
     '''
     '''
 
-def taxonomyProcessing(taxonomyFileType, taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar, console):
+def negativeSampleList(negative, frequencyTable):
     '''
-    Function parsing taxonomy input file 100*(186/198)
+    function to generate negative sample list
     '''
-    if taxonomyFileType == 'blast':
-        taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar)
-    elif taxonomyFileType == 'bold':
-        test = boldToMemory(frequencyTable)
-    elif taxonomyFileType == 'sintax':
-        test = sintaxToMemory(seqname)
-    elif taxonomyFileType == 'idtaxa':
-        test = idtaxaToMemory(eval_)
+    sampleList = frequencyTable.columns.tolist()
 
-def taxToMemory(TAX, freqTotalCountDict, seqname, taxid, pident, qcov, eval_, pbar, progress_bar):
-    '''
-    Function parsing the BLAST taxonomy file
-    For now it only takes in the specific outfmt "6" structure
-    '''
-    taxIdInputDict = collections.defaultdict(list)
-    taxQcovInputDict = collections.defaultdict(list)
-    taxPidentInputDict = collections.defaultdict(list)
-    taxTotalDict = collections.defaultdict(list)
-    taxEvalInputDict = collections.defaultdict(list)
-    with open(TAX, 'r') as taxFile:
-        for line in taxFile:
-            progress_bar.update(pbar, advance=len(line))
-            line = line.rstrip('\n')
-            seqName = line.split('\t')[seqname]
-            taxQcov = int(line.split('\t')[qcov])
-            taxPident = float(line.split('\t')[pident])
-            taxID = line.split('\t')[taxid]
-            evalNumber = float(line.split('\t')[eval_])
-            taxTotalDict[seqName].append(line)
-            if all(evalNumber <= item for item in taxEvalInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
-                taxIdInputDict[seqName].append(taxID)
-                taxQcovInputDict[seqName].append(taxQcov)
-                taxPidentInputDict[seqName].append(taxPident)
-                taxEvalInputDict[seqName].append(evalNumber)
-    for item in freqTotalCountDict:
-        if item not in taxIdInputDict:
-            taxIdInputDict[item] = ''
-            taxQcovInputDict[item] = ''
-            taxPidentInputDict[item] = ''
-            taxTotalDict[item] = ''
-    return taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar
 
 def smith_waterman(seq1, seq2, match_score=2, mismatch_penalty=-5, gap_penalty=-5):
     '''

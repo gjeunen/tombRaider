@@ -10,14 +10,14 @@ import os
 import sys
 import copy
 import datetime
-from function.tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles, freqToMemory, zotuToMemory, taxonomyProcessing, blastToMemory, boldToMemory, sintaxToMemory, idtaxaToMemory, taxToMemory, smith_waterman, needleman_wunsch
+from function.tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles, freqToMemory, zotuToMemory, blastToMemory, boldToMemory, sintaxToMemory, idtaxaToMemory, negativeSampleList, smith_waterman, needleman_wunsch
 
 
     
 ########################
 # tombRaider ALGORITHM #
 ########################
-def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, seqname, taxid, pident, qcov, eval_, taxa_are_rows_, omit_rows_, omit_columns_, sort_):
+def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_):
     '''
     The main function to identify and merge parent-child sequences using the taxon-dependent co-occurrence algorithm
     '''
@@ -50,7 +50,10 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             pbar = progress_bar.add_task(console = console, description="[cyan]|       Reading Files[/] |", total=inputTotalFileSize)
             frequencyTable, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
             seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
-            taxIdInputDict, taxQcovInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyProcessing(taxonomyFileType, taxonomyInputFile, frequencyTable, seqname, taxid, pident, qcov, eval_, pbar, progress_bar, console)
+            if taxonomyFileType == 'blast':
+                taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+            else:
+                exit()
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()
@@ -58,13 +61,18 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{f}, aborting analysis...[/]\n")
         exit()
 
-    # ## calculate number of unique combinations for progress bar (x = ((n*n)-n)/2)
-    # uniqueCombinations = int(((len(freqTotalCountDict) * len(freqTotalCountDict)) - len(freqTotalCountDict)) / 2)
+    ## calculate number of unique combinations for progress bar (x = ((n*n)-n)/2)
+    uniqueCombinations = int(((len(frequencyTable) * len(frequencyTable)) - len(frequencyTable)) / 2)
 
-    # ## get list of samples and exclude if {negative} != None
-    # fullNegativeList = []
-    # if negative == None:
-    #     freqInputDictSubset = copy.deepcopy(freqInputDict)
+    ## get list of samples and exclude if {negative} != None
+    frequencyTableSubset = copy.deepcopy(frequencyTable)
+    if negative != None:
+        fullNegativeList = negativeSampleList(negative, frequencyTable)
+        
+    
+    
+    
+
     # else:
     #     negativeList = negative.split('+')
     #     for item in negativeList:

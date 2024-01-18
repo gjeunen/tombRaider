@@ -97,67 +97,32 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
                     condensedLogDict[frequencyTableSubset.index[child]]['BLAST score threshold met'].append(frequencyTableSubset.index[parent])
                     positiveDetectionsChild = frequencyTableSubset.iloc[child][frequencyTableSubset.iloc[child] >= detection_threshold_].index.tolist()
                     positiveDetectionsParent = frequencyTableSubset.iloc[parent][frequencyTableSubset.iloc[parent] >= detection_threshold_].index.tolist()
-                    # 4.1 co-occurrence pattern = 'presence-absence'
                     if occurrence_type_ == 'presence-absence':
                         missingCount = len(set(positiveDetectionsChild) - set(positiveDetectionsParent))
-                        if count:
-                            if count < missingCount:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'child too frequently found without parent ({count}/{missingCount})')
-                                continue
-                        elif global_ratio_:
-                            if 1 - (missingCount / len(frequencyTableSubset.index.tolist())) < global_ratio_:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
-                                continue
-                        elif local_ratio_:
-                            if 1 - (missingCount / (len(positiveDetectionsParent) + missingCount)) < global_ratio_:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
-                                continue
-                        else:
-                            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
-                            exit()
-                    # 4.2 co-occurrence pattern = 'abundance'
                     elif occurrence_type_ == 'abundance':
-                        countHigherValues = ((frequencyTableSubset.iloc[child] >= detection_threshold_) & (frequencyTableSubset.iloc[child] > frequencyTableSubset.iloc[parent])).sum()
-                        if count:
-                            if count < countHigherValues:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'readcount child too frequently higher than parent ({count}/{countHigherValues})')
-                                continue
-                        elif global_ratio_:
-                            print()
-                        elif local_ratio_:
-                            print()
-                        else:
-                            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
-                            exit()
-                            
-
-
-    #                 # 4.2 check if child only has lower abundance in samples compared to parent
-    #                 elif occurrence_type_ == 'abundance':
-    #                     count = 0
-    #                     totalCount = 0
-    #                     for item in freqInputDictSubset[parentName]:
-    #                         parentValue = freqInputDictSubset[parentName][item]
-    #                         childValue = freqInputDictSubset[childName][item]
-    #                         if parentValue < int(detection_threshold_):
-    #                             parentValue = 0
-    #                         if childValue < int(detection_threshold_):
-    #                             childValue = 0
-    #                         if parentValue < childValue:
-    #                             count += 1
-    #                         if parentValue > 0:
-    #                             totalCount += 1
-    #                         if childValue > 0 and parentValue == 0:
-    #                             totalCount += 1
-    #                     totalRatio = 1 - (count / totalCount)
-    #                     if totalRatio < ratio:
-    #                         logDict[childName][parentName].append(f'co-occurrence ratio not met ({float("{:.2f}".format(totalRatio))}%)')
-    #                         #condensedLogDict[childName]['co-occurrence ratio not met'].append(parentName)
-    #                         continue
-
+                        missingCount = ((frequencyTableSubset.iloc[child] >= detection_threshold_) & (frequencyTableSubset.iloc[child] > frequencyTableSubset.iloc[parent])).sum()
                     else:
                         console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
                         exit()
+                    if count:
+                        if count < missingCount:
+                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'child too frequently found without parent ({count}/{missingCount})')
+                            continue
+                    elif global_ratio_:
+                        if 1 - (missingCount / len(frequencyTableSubset.index.tolist())) < global_ratio_:
+                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
+                            continue
+                    elif local_ratio_:
+                        if 1 - (missingCount / (len(positiveDetectionsParent) + missingCount)) < local_ratio_:
+                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'local co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
+                            continue
+                    else:
+                        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
+                        exit()
+
+
+
+
 
                 except KeyError as k:
                     console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")

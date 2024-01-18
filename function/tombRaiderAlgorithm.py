@@ -10,7 +10,7 @@ import os
 import sys
 import copy
 import datetime
-from function.tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles, freqToMemory, zotuToMemory, blastToMemory, boldToMemory, sintaxToMemory, idtaxaToMemory, negativeSampleList, smith_waterman, needleman_wunsch
+from function.tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles, freqToMemory, zotuToMemory, blastToMemory, boldToMemory, sintaxToMemory, idtaxaToMemory, removeNegativeSamples, smith_waterman, needleman_wunsch
 
 
     
@@ -53,6 +53,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             if taxonomyFileType == 'blast':
                 taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
             else:
+                console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]{taxonomyFileType} not yet supported, aborting analysis...[/]\n")
                 exit()
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
@@ -67,39 +68,8 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
     ## get list of samples and exclude if {negative} != None
     frequencyTableSubset = copy.deepcopy(frequencyTable)
     if negative != None:
-        fullNegativeList = negativeSampleList(negative, frequencyTable)
-        
-    
-    
-    
+        frequencyTableSubset = removeNegativeSamples(negative, frequencyTableSubset)
 
-    # else:
-    #     negativeList = negative.split('+')
-    #     for item in negativeList:
-    #         if item.startswith('*') and item.endswith('*'):
-    #             itemMatch = item.rstrip('*').lstrip('*')
-    #             for sampleName in sampleNameList:
-    #                 if itemMatch in sampleName:
-    #                     fullNegativeList.append(sampleName)
-    #         elif item.startswith('*'):
-    #             itemMatch = item.lstrip('*')
-    #             for sampleName in sampleNameList:
-    #                 if sampleName.endswith(itemMatch):
-    #                     fullNegativeList.append(sampleName)
-    #         elif item.endswith('*'):
-    #             itemMatch = item.rstrip('*')
-    #             for sampleName in sampleNameList:
-    #                 if sampleName.startswith(itemMatch):
-    #                     fullNegativeList.append(sampleName)
-    #         else:
-    #             for sampleName in sampleNameList:
-    #                 if sampleName == item:
-    #                     fullNegativeList.append(sampleName)
-    #         freqInputDictSubset = copy.deepcopy(freqInputDict)
-    #         for item in freqInputDictSubset:
-    #             for sampleToRemove in fullNegativeList:
-    #                 if sampleToRemove in freqInputDictSubset[item]:
-    #                     del freqInputDictSubset[item][sampleToRemove]
             
     # ## determine parent and child sequences
     # newlyUpdatedCountDict = collections.defaultdict(list)

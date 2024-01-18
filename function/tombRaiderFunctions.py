@@ -157,12 +157,29 @@ def idtaxaToMemory():
     '''
     '''
 
-def negativeSampleList(negative, frequencyTable):
+def removeNegativeSamples(negative, frequencyTableSubset):
     '''
-    function to generate negative sample list
+    function to remove negative samples before the algorithm
     '''
-    sampleList = frequencyTable.columns.tolist()
-
+    fullNegativeList = []
+    sampleList = frequencyTableSubset.columns.tolist()
+    negativeList = negative.split('+')
+    for item in negativeList:
+        if '*' not in item:
+            frequencyTableSubset = frequencyTableSubset.drop(item, axis = 1)
+        elif item.startswith('*') and item.endswith('*'):
+            itemMatch = item.rstrip('*').lstrip('*')
+            droppedColumns = frequencyTableSubset.filter(like = itemMatch).columns
+            frequencyTableSubset = frequencyTableSubset.drop(columns = droppedColumns)
+        elif item.startswith('*'):
+            itemMatch = item.lstrip('*')
+            droppedColumns = frequencyTableSubset.filter(regex = f'{itemMatch}$', axis = 1).columns
+            frequencyTableSubset = frequencyTableSubset.drop(columns = droppedColumns)
+        elif item.endswith('*'):
+            itemMatch = item.rstrip('*')
+            droppedColumns = frequencyTableSubset.filter(regex = f'^{itemMatch}', axis = 1).columns
+            frequencyTableSubset = frequencyTableSubset.drop(columns = droppedColumns)
+    return frequencyTableSubset
 
 def smith_waterman(seq1, seq2, match_score=2, mismatch_penalty=-5, gap_penalty=-5):
     '''

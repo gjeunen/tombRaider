@@ -161,8 +161,6 @@ def removeNegativeSamples(negative, frequencyTableSubset):
     '''
     function to remove negative samples before the algorithm
     '''
-    fullNegativeList = []
-    sampleList = frequencyTableSubset.columns.tolist()
     negativeList = negative.split('+')
     for item in negativeList:
         if '*' not in item:

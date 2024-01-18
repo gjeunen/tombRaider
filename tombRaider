@@ -32,7 +32,9 @@ click.rich_click.OPTION_GROUPS = {
                 "--detection-threshold",
                 "--similarity",
                 "--negative",
-                "--ratio",
+                "--global-ratio",
+                "--local-ratio",
+                "--count",
             ],
         },
         {
@@ -78,7 +80,7 @@ click.rich_click.OPTION_GROUPS = {
 }
 
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
-@click.option("--method", default = 'taxon-dependent co-occurrence', help = "merging method ('taxon-dependent co-occurrence' [default], 'taxon-independent co-occurrence', 'taxon-dependent merging')")
+@click.option("--method", default = 'taxon-dependent co-occurrence', help = "merging method: 'taxon-dependent co-occurrence' (default), 'taxon-independent co-occurrence', 'taxon-dependent merging'")
 @click.option("--frequency-input", "frequency_input_", help = "frequency table input file name")
 @click.option("--sequence-input", "sequence_input_", help = "sequence input file name")
 @click.option("--blast-input", "blast_input_", help = "blast input file name")
@@ -93,19 +95,21 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--idtaxa-output", "idtaxa_output_", help = "idtaxa output file name")
 @click.option("--condensed-log", "condensed_log_", help = "condensed log output file name")
 @click.option("--detailed-log", "detailed_log_", help = "detailed log output file name")
-@click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern ('presence-absence' or 'abundance' [default])")
-@click.option("--detection-threshold", "detection_threshold_", default = 1, help = "detection threshold to consider true detection")
-@click.option("--similarity", default = 90, help = "similarity threshold needed between child and parent")
+@click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern: 'presence-absence' or 'abundance' (default)")
+@click.option("--detection-threshold", "detection_threshold_", default = 1, help = "detection threshold to consider true detection (default = 1)")
+@click.option("--similarity", default = 90, help = "similarity threshold needed between child and parent (default = 90)")
 @click.option("--negative", help = "list of negative control samples")
-@click.option("--ratio", default = 1.0, help = "minimum ratio for co-occurrence pattern to hold true")
-@click.option("--blast-format", "blast_format_", default = "6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen", help = "string provided for the 'blastn -outfmt' parameter")
-@click.option("--taxa-are-rows", "taxa_are_rows_", default = True, help = "True: column headers = samples; False: column headers = taxa")
+@click.option("--global-ratio", "global_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across all samples")
+@click.option("--local-ratio", "local_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across samples with positive detections")
+@click.option("--count", type = int, help = "maximum number of samples with a presence of child and absence of parent")
+@click.option("--blast-format", "blast_format_", default = "6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen", help = "format of 'blast-input' file as provided to parameter 'outfmt' in blastn")
+@click.option("--taxa-are-rows", "taxa_are_rows_", default = True, help = "True: column headers = samples (default); False: column headers = taxa")
 @click.option("--omit-rows", "omit_rows_", help = "a list of row labels to drop from the frequency table")
 @click.option("--omit-columns", "omit_columns_", help = "a list of column labels to drop from the frequency table")
-@click.option("--sort", "sort_", help = "method to sort input files ('total read count', 'average read count', 'detections')")
+@click.option("--sort", "sort_", help = "method to sort input files: 'total read count', 'average read count', 'detections'")
 @click.option("--example-run", "example_run_", is_flag = True, help = "run tombRaider using the example files")
 
-def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
+def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefacts from metabarcoding datasets.
     
     The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
@@ -132,13 +136,13 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
     # check --method option is valid and pass parameters to the function file
     if method == 'taxon-dependent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method} (default)")
-        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
+        _ = taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
     elif method == 'taxon-independent co-occurrence':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
+        _ = taxonIndependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
     elif method == 'taxon-dependent merging':
         console.print(f"[cyan]|              Method[/] | {method}")
-        _ = taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
+        _ = taxonDependentMergingAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
     elif method == None:
         console.print("[cyan]|              Method[/] | [bold yellow]parameter --method not specified, aborting analysis...[/]")
         exit()

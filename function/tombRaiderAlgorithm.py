@@ -17,7 +17,7 @@ from function.tombRaiderFunctions import checkParamsNotNone, checkTaxonomyFiles,
 ########################
 # tombRaider ALGORITHM #
 ########################
-def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, ratio, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_):
+def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_):
     '''
     The main function to identify and merge parent-child sequences using the taxon-dependent co-occurrence algorithm
     '''
@@ -62,15 +62,107 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{f}, aborting analysis...[/]\n")
         exit()
 
-    ## calculate number of unique combinations for progress bar (x = ((n*n)-n)/2)
+    # calculate number of unique combinations for progress bar (x = ((n*n)-n)/2)
     uniqueCombinations = int(((len(frequencyTable) * len(frequencyTable)) - len(frequencyTable)) / 2)
 
-    ## get list of samples and exclude if {negative} != None
+    # get list of samples and exclude if {negative} != None
     frequencyTableSubset = copy.deepcopy(frequencyTable)
     if negative != None:
         frequencyTableSubset = removeNegativeSamples(negative, frequencyTableSubset)
+    
+    # determine parent and child sequences
+    childParentComboDict = {}
+    logDict = collections.defaultdict(lambda: collections.defaultdict(list))
+    condensedLogDict = collections.defaultdict(lambda: collections.defaultdict(list))
+    with rich.progress.Progress(*columns) as progress_bar:
+        pbar = progress_bar.add_task(console = console, description = "[cyan]|  Identify artefacts[/] |", total=uniqueCombinations)
+        for parent in range(len(frequencyTableSubset) - 1):
+            for child in range(parent + 1, len(frequencyTableSubset)):
+                progress_bar.update(pbar, advance=1)
+                try:
+                    # 1. check if child already identified as child for a more abundant sequence, skip if yes
+                    if frequencyTableSubset.index[child] in childParentComboDict:
+                        continue
+                    # 2. check if taxonomic ID is matching between parent and child
+                    if not set(taxIdInputDict[frequencyTableSubset.index[parent]]) & set(taxIdInputDict[frequencyTableSubset.index[child]]):
+                        continue
+                    # 3. check if similarity score is lower for child than parent
+                    logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'matching tax IDs ({list(set(taxIdInputDict[frequencyTableSubset.index[parent]]) & set(taxIdInputDict[frequencyTableSubset.index[child]]))[0]})')
+                    condensedLogDict[frequencyTableSubset.index[child]]['matching tax IDs'].append(frequencyTableSubset.index[parent])
+                    if taxPidentInputDict[frequencyTableSubset.index[child]][0] > taxPidentInputDict[frequencyTableSubset.index[parent]][0]:
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'similarity score threshold not met ({taxPidentInputDict[frequencyTableSubset.index[child]][0]}, {taxPidentInputDict[frequencyTableSubset.index[parent]][0]})')
+                        continue
+                    # 4. check co-occurrence pattern
+                    logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'similarity score threshold met ({taxPidentInputDict[frequencyTableSubset.index[child]][0]}, {taxPidentInputDict[frequencyTableSubset.index[parent]][0]})')
+                    condensedLogDict[frequencyTableSubset.index[child]]['BLAST score threshold met'].append(frequencyTableSubset.index[parent])
+                    positiveDetectionsChild = frequencyTableSubset.iloc[child][frequencyTableSubset.iloc[child] >= detection_threshold_].index.tolist()
+                    positiveDetectionsParent = frequencyTableSubset.iloc[parent][frequencyTableSubset.iloc[parent] >= detection_threshold_].index.tolist()
+                    # 4.1 co-occurrence pattern = 'presence-absence'
+                    if occurrence_type_ == 'presence-absence':
+                        missingCount = len(set(positiveDetectionsChild) - set(positiveDetectionsParent))
+                        if count:
+                            if count < missingCount:
+                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'child too frequently found without parent ({count}/{missingCount})')
+                                continue
+                        elif global_ratio_:
+                            if 1 - (missingCount / len(frequencyTableSubset.index.tolist())) < global_ratio_:
+                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
+                                continue
+                        elif local_ratio_:
+                            if 1 - (missingCount / (len(positiveDetectionsParent) + missingCount)) < global_ratio_:
+                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
+                                continue
+                        else:
+                            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
+                            exit()
+                    # 4.2 co-occurrence pattern = 'abundance'
+                    elif occurrence_type_ == 'abundance':
+                        countHigherValues = ((frequencyTableSubset.iloc[child] >= detection_threshold_) & (frequencyTableSubset.iloc[child] > frequencyTableSubset.iloc[parent])).sum()
+                        if count:
+                            if count < countHigherValues:
+                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'readcount child too frequently higher than parent ({count}/{countHigherValues})')
+                                continue
+                        elif global_ratio_:
+                            print()
+                        elif local_ratio_:
+                            print()
+                        else:
+                            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
+                            exit()
+                            
 
-            
+
+    #                 # 4.2 check if child only has lower abundance in samples compared to parent
+    #                 elif occurrence_type_ == 'abundance':
+    #                     count = 0
+    #                     totalCount = 0
+    #                     for item in freqInputDictSubset[parentName]:
+    #                         parentValue = freqInputDictSubset[parentName][item]
+    #                         childValue = freqInputDictSubset[childName][item]
+    #                         if parentValue < int(detection_threshold_):
+    #                             parentValue = 0
+    #                         if childValue < int(detection_threshold_):
+    #                             childValue = 0
+    #                         if parentValue < childValue:
+    #                             count += 1
+    #                         if parentValue > 0:
+    #                             totalCount += 1
+    #                         if childValue > 0 and parentValue == 0:
+    #                             totalCount += 1
+    #                     totalRatio = 1 - (count / totalCount)
+    #                     if totalRatio < ratio:
+    #                         logDict[childName][parentName].append(f'co-occurrence ratio not met ({float("{:.2f}".format(totalRatio))}%)')
+    #                         #condensedLogDict[childName]['co-occurrence ratio not met'].append(parentName)
+    #                         continue
+
+                    else:
+                        console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
+                        exit()
+
+                except KeyError as k:
+                    console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
+                    exit()
+
     # ## determine parent and child sequences
     # newlyUpdatedCountDict = collections.defaultdict(list)
     # combinedDict = collections.defaultdict(list)

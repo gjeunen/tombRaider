@@ -72,6 +72,7 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
     
     # determine parent and child sequences
     childParentComboDict = {}
+    combinedDict = collections.defaultdict(list)
     logDict = collections.defaultdict(lambda: collections.defaultdict(list))
     condensedLogDict = collections.defaultdict(lambda: collections.defaultdict(list))
     with rich.progress.Progress(*columns) as progress_bar:
@@ -119,10 +120,65 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
                     else:
                         console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
                         exit()
+                    # 5. check sequence similarity
+                    condensedLogDict[frequencyTableSubset.index[child]]['co-occurrence rate met'].append(frequencyTableSubset.index[parent])
+                    if count:
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({count}/{missingCount})')
+                    elif global_ratio_:
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
+                    elif local_ratio_:
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
+                    else:
+                        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
+                        exit()
+                    alignmentSeq1, alignmentSeq2 = needleman_wunsch(seqInputDict[frequencyTableSubset.index[parent]], seqInputDict[frequencyTableSubset.index[child]])
+                    distanceCalculation = sum(1 for a, b in zip(alignmentSeq1, alignmentSeq2) if a != b)
+                    if 100 - (distanceCalculation/ max(len(seqInputDict[frequencyTableSubset.index[parent]]), len(seqInputDict[frequencyTableSubset.index[child]])) * 100) <= int(similarity):
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'sequence similarity threshold not met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[frequencyTableSubset.index[parent]]), len(seqInputDict[frequencyTableSubset.index[child]])) * 100)))}%)')
+                        continue
+                    # 6. merge child - parent data
+                    logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'sequence similarity threshold met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[frequencyTableSubset.index[parent]]), len(seqInputDict[frequencyTableSubset.index[child]])) * 100)))}%)')
+                    condensedLogDict[frequencyTableSubset.index[child]]['sequence similarity threshold met'].append(frequencyTableSubset.index[parent])
+                    # 6.1 method 1: if parent not identified as a child previously, we can combine child and parent data
+                    if frequencyTableSubset.index[parent] not in childParentComboDict:
+                        childParentComboDict[frequencyTableSubset.index[child]] = frequencyTableSubset.index[parent]
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'parent identified!')
+                        condensedLogDict[frequencyTableSubset.index[child]]['parent identified!'].append(frequencyTableSubset.index[parent])
+                        combinedDict[frequencyTableSubset.index[parent]].append(frequencyTableSubset.index[child])
+                    # 6.2 method 2: if parent already identfied as a child previously, add child to grandparent data
 
 
 
 
+
+
+    #                 # if it passes all the checks, we need to determine how it can be combined --> several options
+    #                 # first: if parent not identified as a child previously, we can combine child and parent data
+    #                 logDict[childName][parentName].append(f'sequence similarity threshold met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100)))}%)')
+    #                 condensedLogDict[childName]['sequence similarity threshold met'].append(parentName)
+    #                 if parentName not in childParentComboDict:
+    #                     childParentComboDict[childName] = parentName
+    #                     logDict[childName][parentName].append(f'parent identified!')
+    #                     condensedLogDict[childName]['parent identified!'].append(parentName)
+    #                     combinedDict[parentName].append(childName)
+    #                     for item in newParentDict:
+    #                         newValue = int(newParentDict[item]) + int(freqInputDict[childName][item])
+    #                         newParentDict[item] = newValue
+
+    #                 # second: childName not already identified as a child previously and parent identified as a child previously, add childName data to parent of parentName data
+    #                 elif parentName in childParentComboDict:
+    #                     combinedDict[childParentComboDict[parentName]].append(childName)
+    #                     childParentComboDict[childName] = childParentComboDict[parentName]
+    #                     logDict[childName][parentName].append(f'grandparent identified ({childParentComboDict[parentName]})!')
+    #                     condensedLogDict[childName]['grandparent identified!'].append(childParentComboDict[parentName])
+    #                     for item in newlyUpdatedCountDict[childParentComboDict[parentName]]:
+    #                         newValueGrandParent = int(newlyUpdatedCountDict[childParentComboDict[parentName]][item]) + int(freqInputDict[childName][item])
+    #                         newlyUpdatedCountDict[childParentComboDict[parentName]][item] = newValueGrandParent
+    #             except KeyError as k:
+    #                 console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
+    #                 exit()
+    #         if parentName not in childParentComboDict:
+    #             newlyUpdatedCountDict[parentName] = newParentDict
 
                 except KeyError as k:
                     console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")

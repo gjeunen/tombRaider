@@ -219,41 +219,39 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
     except TypeError:
         pass
 
-        
-
-
-
-
-
-    # ## write condensed log file
-    # try:
-    #     with open(condensed_log_, 'w') as logOut:
-    #         logOut.write('#################\n#### SUMMARY ####\n#################\n\n')
-    #         logOut.write(f'date-time: {formattedTime}\n\n')
-    #         logOut.write(f'parameters:\n')
-    #         logOut.write(f'--method: taxon-dependent co-occurrence (default)\n')
-    #         logOut.write(f'--occurrence type: {occurrence_type_}\n')
-    #         logOut.write(f'--detection threshold: {detection_threshold_}\n')
-    #         logOut.write(f'--similarity threshold: {similarity}\n')
-    #         logOut.write(f'--co-occurrence ratio: {ratio}\n')
-    #         logOut.write(f'--sample exclusion list: {", ".join(fullNegativeList)}\n\n')
-    #         logOut.write(f'results:\n')
-    #         logOut.write(f'--total seqs: {len(seqInputDict)}\n')
-    #         logOut.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
-    #         for item in combinedDict:
-    #             logOut.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
-    #         logOut.write(f'\ncode: tombRaider {commandLineInput}\n\n\n')
-    #         logOut.write('############################\n#### CONDENSED ANALYSIS ####\n############################\n\n')
-    #         for seq in freqTotalCountDict:
-    #             if seq in condensedLogDict:
-    #                 logOut.write(f'### analysing: {seq} ###\n')
-    #                 for subitem in condensedLogDict[seq]:
-    #                     logOut.write(f'{subitem}:\t')
-    #                     outputString = ", ".join(condensedLogDict[seq][subitem])
-    #                     logOut.write(f'{outputString}\n')
-    #                 logOut.write('\n')
-    # except TypeError:
-    #     pass
+    # write condensed log file
+    try:
+        with open(condensed_log_, 'w') as condensedLogFile:
+            condensedLogFile.write('#################\n#### SUMMARY ####\n#################\n\n')
+            condensedLogFile.write(f'date-time: {formattedTime}\n\n')
+            condensedLogFile.write(f'code: tombRaider {commandLineInput}\n\n')
+            condensedLogFile.write(f'parameters:\n')
+            condensedLogFile.write(f'--method: taxon-dependent co-occurrence (default)\n')
+            condensedLogFile.write(f'--occurrence type: {occurrence_type_}\n')
+            condensedLogFile.write(f'--detection threshold: {detection_threshold_}\n')
+            condensedLogFile.write(f'--similarity threshold: {similarity}\n')
+            if count:
+                condensedLogFile.write(f'--co-occurrence count: {count}\n')
+            elif global_ratio_:
+                condensedLogFile.write(f'--co-occurrence global ratio: {global_ratio_}\n')
+            elif local_ratio_:
+                condensedLogFile.write(f'--co-occurrence local ratio: {local_ratio_}\n')
+            condensedLogFile.write(f'--sample exclusion list: {", ".join(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns)))}\n\n')
+            condensedLogFile.write(f'results:\n')
+            condensedLogFile.write(f'--total seqs: {len(seqInputDict)}\n')
+            condensedLogFile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
+            for item in combinedDict:
+                condensedLogFile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
+            condensedLogFile.write('\n############################\n#### CONDENSED ANALYSIS ####\n############################\n\n')
+            for seq in condensedLogDict:
+                condensedLogFile.write(f'### analysing: {seq} ###\n')
+                for subitem in condensedLogDict[seq]:
+                    condensedLogFile.write(f'{subitem}:\t')
+                    outputString = ", ".join(condensedLogDict[seq][subitem])
+                    condensedLogFile.write(f'{outputString}\n')
+                condensedLogFile.write('\n')
+    except TypeError:
+        pass
 
 ####################
 # LULU ALTERNATIVE #

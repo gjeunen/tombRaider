@@ -28,13 +28,13 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
     commandLineInput = ' '.join(sys.argv[1:])
 
     # check if all parameters are provided
-    # missingArguments = checkParamsNotNone(frequency_input = frequency_input_, sequence_input = sequence_input_, frequency_output = frequency_output_, sequence_output = sequence_output_)
-    # if len(missingArguments) == 1:
-    #     console.print(f"[cyan]|               ERROR[/] | [bold yellow]'--{''.join(missingArguments).replace('_', '-')}' parameter not specified, aborting analysis...[/]\n")
-    #     exit()
-    # elif len(missingArguments) > 1:
-    #     console.print(f"[cyan]|               ERROR[/] | [bold yellow]--{' and --'.join(missingArguments).replace('_', '-')} parameters not specified, aborting analysis...[/]\n")
-    #     exit()
+    missingArguments = checkParamsNotNone(frequency_input = frequency_input_, sequence_input = sequence_input_, frequency_output = frequency_output_, sequence_output = sequence_output_)
+    if len(missingArguments) == 1:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]'--{''.join(missingArguments).replace('_', '-')}' parameter not specified, aborting analysis...[/]\n")
+        exit()
+    elif len(missingArguments) > 1:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]--{' and --'.join(missingArguments).replace('_', '-')} parameters not specified, aborting analysis...[/]\n")
+        exit()
     
     # check taxonomy type
     taxonomyInputFile, taxonomyFileType = checkTaxonomyFiles(blast_input_, bold_input_, sintax_input_, idtaxa_input_)
@@ -167,55 +167,63 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
     
     # write updated taxonomy file to output
-    with open(blast_output_, 'w') as taxoutfile:
-        for item in frequencyTable.index.tolist():
-            for subitem in taxTotalDict[item]:
-                taxoutfile.write(f'{subitem}\n')
+    if taxonomyFileType == 'blast':
+        with open(blast_output_, 'w') as taxoutfile:
+            for item in frequencyTable.index.tolist():
+                for subitem in taxTotalDict[item]:
+                    taxoutfile.write(f'{subitem}\n')
+    
+    # write Terminal log
+    console.print(f"[cyan]|  Summary Statistics[/] | [bold yellow][/]")
+    console.print(f"[cyan]|     Total # of ASVs[/] | [bold yellow]{len(seqInputDict)}[/]")
+    console.print(f"[cyan]|Total # of Artefacts[/] | [bold yellow]{len(childParentComboDict)} ({float('{:.2f}'.format(len(childParentComboDict) / len(seqInputDict) * 100))}%)[/]")
+    console.print(f"[cyan]|   Parent-Child List[/] | [bold yellow][/]")
+    for item in combinedDict:
+        spaces = ' ' * (9 - len(item))
+        if len(combinedDict[item]) == 1:
+            console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]child:      {', '.join(combinedDict[item])}[/]")
+        else:
+            console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
+    
+    # write detailed log file
+    try:
+        with open(detailed_log_, 'w') as detailedLogFile:
+            detailedLogFile.write('#################\n#### SUMMARY ####\n#################\n\n')
+            detailedLogFile.write(f'date-time: {formattedTime}\n\n')
+            detailedLogFile.write(f'code: tombRaider {commandLineInput}\n\n')
+            detailedLogFile.write(f'parameters:\n')
+            detailedLogFile.write(f'--method: taxon-dependent co-occurrence (default)\n')
+            detailedLogFile.write(f'--occurrence type: {occurrence_type_}\n')
+            detailedLogFile.write(f'--detection threshold: {detection_threshold_}\n')
+            detailedLogFile.write(f'--similarity threshold: {similarity}\n')
+            if count:
+                detailedLogFile.write(f'--co-occurrence count: {count}\n')
+            elif global_ratio_:
+                detailedLogFile.write(f'--co-occurrence global ratio: {global_ratio_}\n')
+            elif local_ratio_:
+                detailedLogFile.write(f'--co-occurrence local ratio: {local_ratio_}\n')
+            detailedLogFile.write(f'--sample exclusion list: {", ".join(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns)))}\n\n')
+            detailedLogFile.write(f'results:\n')
+            detailedLogFile.write(f'--total seqs: {len(seqInputDict)}\n')
+            detailedLogFile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
+            for item in combinedDict:
+                detailedLogFile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
+            detailedLogFile.write('\n###########################\n#### DETAILED ANALYSIS ####\n###########################\n\n')
+            for item in logDict:
+                detailedLogFile.write(f'### analysing: {item} ###\n')
+                for subitem in logDict[item]:
+                    detailedLogFile.write(f'{subitem}:\t')
+                    outputString = "\t".join(logDict[item][subitem])
+                    detailedLogFile.write(f'{outputString}\n')
+                detailedLogFile.write('\n')
+    except TypeError:
+        pass
 
         
 
 
 
-    # ## write log
-    # console.print(f"[cyan]|  Summary Statistics[/] | [bold yellow][/]")
-    # console.print(f"[cyan]|     Total # of ASVs[/] | [bold yellow]{len(seqInputDict)}[/]")
-    # console.print(f"[cyan]|Total # of Artefacts[/] | [bold yellow]{len(childParentComboDict)} ({float('{:.2f}'.format(len(childParentComboDict) / len(seqInputDict) * 100))}%)[/]")
-    # console.print(f"[cyan]|   Parent-Child List[/] | [bold yellow][/]")
-    # for item in combinedDict:
-    #     spaces = ' ' * (9 - len(item))
-    #     if len(combinedDict[item]) == 1:
-    #         console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]child:      {', '.join(combinedDict[item])}[/]")
-    #     else:
-    #         console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
-    
-    # ## write detailed log file
-    # try:
-    #     with open(detailed_log_, 'w') as logOutFile:
-    #         logOutFile.write('#################\n#### SUMMARY ####\n#################\n\n')
-    #         logOutFile.write(f'date-time: {formattedTime}\n\n')
-    #         logOutFile.write(f'parameters:\n')
-    #         logOutFile.write(f'--method: taxon-dependent co-occurrence (default)\n')
-    #         logOutFile.write(f'--occurrence type: {occurrence_type_}\n')
-    #         logOutFile.write(f'--detection threshold: {detection_threshold_}\n')
-    #         logOutFile.write(f'--similarity threshold: {similarity}\n')
-    #         logOutFile.write(f'--co-occurrence ratio: {ratio}\n')
-    #         logOutFile.write(f'--sample exclusion list: {", ".join(fullNegativeList)}\n\n')
-    #         logOutFile.write(f'results:\n')
-    #         logOutFile.write(f'--total seqs: {len(seqInputDict)}\n')
-    #         logOutFile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
-    #         for item in combinedDict:
-    #             logOutFile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
-    #         logOutFile.write(f'\ncode: tombRaider {commandLineInput}\n\n\n')
-    #         logOutFile.write('###########################\n#### DETAILED ANALYSIS ####\n###########################\n\n')
-    #         for item in logDict:
-    #             logOutFile.write(f'### analysing: {item} ###\n')
-    #             for subitem in logDict[item]:
-    #                 logOutFile.write(f'{subitem}:\t')
-    #                 outputString = "\t".join(logDict[item][subitem])
-    #                 logOutFile.write(f'{outputString}\n')
-    #             logOutFile.write('\n')
-    # except TypeError:
-    #     pass
+
 
     # ## write condensed log file
     # try:

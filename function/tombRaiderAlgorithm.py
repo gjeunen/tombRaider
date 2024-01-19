@@ -105,15 +105,15 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
                     else:
                         console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
                         exit()
-                    if count:
+                    if count or count == 0:
                         if count < missingCount:
                             logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'child too frequently found without parent ({count}/{missingCount})')
                             continue
-                    elif global_ratio_:
+                    elif global_ratio_ or global_ratio_ == 0:
                         if 1 - (missingCount / len(frequencyTableSubset.index.tolist())) < global_ratio_:
                             logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
                             continue
-                    elif local_ratio_:
+                    elif local_ratio_ or local_ratio_ == 0:
                         if 1 - (missingCount / (len(positiveDetectionsParent) + missingCount)) < local_ratio_:
                             logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'local co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
                             continue
@@ -122,11 +122,11 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
                         exit()
                     # 5. check sequence similarity
                     condensedLogDict[frequencyTableSubset.index[child]]['co-occurrence rate met'].append(frequencyTableSubset.index[parent])
-                    if count:
+                    if count or count == 0:
                         logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({count}/{missingCount})')
-                    elif global_ratio_:
+                    elif global_ratio_ or global_ratio_ == 0:
                         logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
-                    elif local_ratio_:
+                    elif local_ratio_ or local_ratio_ == 0:
                         logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
                     else:
                         console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
@@ -196,11 +196,11 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             detailedLogFile.write(f'--occurrence type: {occurrence_type_}\n')
             detailedLogFile.write(f'--detection threshold: {detection_threshold_}\n')
             detailedLogFile.write(f'--similarity threshold: {similarity}\n')
-            if count:
+            if count or count == 0:
                 detailedLogFile.write(f'--co-occurrence count: {count}\n')
-            elif global_ratio_:
+            elif global_ratio_ or global_ratio_ == 0:
                 detailedLogFile.write(f'--co-occurrence global ratio: {global_ratio_}\n')
-            elif local_ratio_:
+            elif local_ratio_ or local_ratio_ == 0:
                 detailedLogFile.write(f'--co-occurrence local ratio: {local_ratio_}\n')
             detailedLogFile.write(f'--sample exclusion list: {", ".join(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns)))}\n\n')
             detailedLogFile.write(f'results:\n')
@@ -230,11 +230,11 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
             condensedLogFile.write(f'--occurrence type: {occurrence_type_}\n')
             condensedLogFile.write(f'--detection threshold: {detection_threshold_}\n')
             condensedLogFile.write(f'--similarity threshold: {similarity}\n')
-            if count:
+            if count or count == 0:
                 condensedLogFile.write(f'--co-occurrence count: {count}\n')
-            elif global_ratio_:
+            elif global_ratio_ or global_ratio_ == 0:
                 condensedLogFile.write(f'--co-occurrence global ratio: {global_ratio_}\n')
-            elif local_ratio_:
+            elif local_ratio_ or local_ratio_ == 0:
                 condensedLogFile.write(f'--co-occurrence local ratio: {local_ratio_}\n')
             condensedLogFile.write(f'--sample exclusion list: {", ".join(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns)))}\n\n')
             condensedLogFile.write(f'results:\n')

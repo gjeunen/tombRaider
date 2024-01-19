@@ -145,41 +145,14 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
                         logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'parent identified!')
                         condensedLogDict[frequencyTableSubset.index[child]]['parent identified!'].append(frequencyTableSubset.index[parent])
                         combinedDict[frequencyTableSubset.index[parent]].append(frequencyTableSubset.index[child])
+                        frequencyTable.loc[frequencyTable.index[parent]] += frequencyTable.loc[frequencyTable.index[child]]
                     # 6.2 method 2: if parent already identfied as a child previously, add child to grandparent data
-
-
-
-
-
-
-    #                 # if it passes all the checks, we need to determine how it can be combined --> several options
-    #                 # first: if parent not identified as a child previously, we can combine child and parent data
-    #                 logDict[childName][parentName].append(f'sequence similarity threshold met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[parentName]), len(seqInputDict[childName])) * 100)))}%)')
-    #                 condensedLogDict[childName]['sequence similarity threshold met'].append(parentName)
-    #                 if parentName not in childParentComboDict:
-    #                     childParentComboDict[childName] = parentName
-    #                     logDict[childName][parentName].append(f'parent identified!')
-    #                     condensedLogDict[childName]['parent identified!'].append(parentName)
-    #                     combinedDict[parentName].append(childName)
-    #                     for item in newParentDict:
-    #                         newValue = int(newParentDict[item]) + int(freqInputDict[childName][item])
-    #                         newParentDict[item] = newValue
-
-    #                 # second: childName not already identified as a child previously and parent identified as a child previously, add childName data to parent of parentName data
-    #                 elif parentName in childParentComboDict:
-    #                     combinedDict[childParentComboDict[parentName]].append(childName)
-    #                     childParentComboDict[childName] = childParentComboDict[parentName]
-    #                     logDict[childName][parentName].append(f'grandparent identified ({childParentComboDict[parentName]})!')
-    #                     condensedLogDict[childName]['grandparent identified!'].append(childParentComboDict[parentName])
-    #                     for item in newlyUpdatedCountDict[childParentComboDict[parentName]]:
-    #                         newValueGrandParent = int(newlyUpdatedCountDict[childParentComboDict[parentName]][item]) + int(freqInputDict[childName][item])
-    #                         newlyUpdatedCountDict[childParentComboDict[parentName]][item] = newValueGrandParent
-    #             except KeyError as k:
-    #                 console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
-    #                 exit()
-    #         if parentName not in childParentComboDict:
-    #             newlyUpdatedCountDict[parentName] = newParentDict
-
+                    elif frequencyTableSubset.index[parent] in childParentComboDict:
+                        combinedDict[childParentComboDict[frequencyTableSubset.index[parent]]].append(frequencyTableSubset.index[child])
+                        childParentComboDict[frequencyTableSubset.index[child]] = childParentComboDict[frequencyTableSubset.index[parent]]
+                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'grandparent identified ({childParentComboDict[frequencyTableSubset.index[parent]]})!')
+                        condensedLogDict[frequencyTableSubset.index[child]]['grandparent identified!'].append(childParentComboDict[frequencyTableSubset.index[parent]])
+                        frequencyTable.loc[frequencyTable.index[childParentComboDict[frequencyTableSubset.index[parent]]]] += frequencyTable.loc[frequencyTable.index[child]]
                 except KeyError as k:
                     console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
                     exit()

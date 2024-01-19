@@ -160,22 +160,15 @@ def taxonDependentCoOccurrenceAlgorithm(frequency_input_, sequence_input_, blast
     # write updated frequency table to output
     frequencyTable = frequencyTable.drop(list(childParentComboDict.keys()))
     frequencyTable.to_csv(frequency_output_, sep = '\t', index = True)
-        
-    # ## write updated frequency table to output
-    # count = 0
-    # with open(frequency_output_, 'w') as outfile:
-    #     for item in newlyUpdatedCountDict:
-    #         count += 1
-    #         if count == 1:
-    #             title = "\t".join(newlyUpdatedCountDict[item].keys())
-    #             outfile.write(f'ID\t{title}\n')
-    #         test = "\t".join(str(value) for value in newlyUpdatedCountDict[item].values())
-    #         outfile.write(f'{item}\t{test}\n')
 
-    # ## write updated sequence file to output
-    # with open(sequence_output_, 'w') as seqoutfile:
-    #     for item in newlyUpdatedCountDict:
-    #         seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
+    # write updated sequence file to output
+    with open(sequence_output_, 'w') as seqoutfile:
+        for item in frequencyTable.index.tolist():
+            seqoutfile.write(f'>{item}\n{seqInputDict[item]}\n')
+
+
+        
+
 
     # ## write updated taxonomy file to output
     # with open(blast_output_, 'w') as taxoutfile:

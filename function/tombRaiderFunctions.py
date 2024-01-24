@@ -141,11 +141,11 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict
             rawTaxDict[item] = ''
     return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
-def boldToMemory():
+def boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console):
     '''
     '''
 
-def sintaxToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar, console):
+def sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, progress_bar):
     '''
     Function parsing the SINTAX taxonomy file
     For now, the file needs to be tab-delimited
@@ -153,12 +153,15 @@ def sintaxToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar, consol
     taxIdInputDict = collections.defaultdict(list)
     taxPidentInputDict = collections.defaultdict(list)
     rawTaxDict = collections.defaultdict(list)
+    thresholdSplit = 1
+    if sintax_threshold_:
+        thresholdSplit = 3
     with open(taxonomyInputFile, 'r') as taxFile:
         for line in taxFile:
             progress_bar.update(pbar, advance=len(line))
             seqName = line.split('\t')[0]
-            taxID = line.split('\t')[1].split(',')[-1].split(':')[1].split('(')[0]
-            taxPident = float(line.split('\t')[1].split(',')[-1].split(':')[1].split('(')[1].rstrip(')'))
+            taxID = line.split('\t')[thresholdSplit].split(',')[-1].split(':')[1].split('(')[0]
+            taxPident = float(line.split('\t')[thresholdSplit].split(',')[-1].split(':')[1].split('(')[1].rstrip(')'))
             taxIdInputDict[seqName].append(taxID)
             taxPidentInputDict[seqName].append(taxPident)
             rawTaxDict[seqName].append(line)
@@ -173,15 +176,15 @@ def idtaxaToMemory():
     '''
     '''
 
-def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console):
+def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console):
     '''
     '''
     if taxonomyFileType == 'blast':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
     elif taxonomyFileType == 'sintax':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = sintaxToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar, console)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, progress_bar)
     elif taxonomyFileType == 'bold':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console)
     elif taxonomyFileType == 'idtaxa':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
     else:

@@ -145,9 +145,29 @@ def boldToMemory():
     '''
     '''
 
-def sintaxToMemory():
+def sintaxToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar, console):
     '''
+    Function parsing the SINTAX taxonomy file
+    For now, the file needs to be tab-delimited
     '''
+    taxIdInputDict = collections.defaultdict(list)
+    taxPidentInputDict = collections.defaultdict(list)
+    rawTaxDict = collections.defaultdict(list)
+    with open(taxonomyInputFile, 'r') as taxFile:
+        for line in taxFile:
+            progress_bar.update(pbar, advance=len(line))
+            seqName = line.split('\t')[0]
+            taxID = line.split('\t')[1].split(',')[-1].split(':')[1].split('(')[0]
+            taxPident = float(line.split('\t')[1].split(',')[-1].split(':')[1].split('(')[1].rstrip(')'))
+            taxIdInputDict[seqName].append(taxID)
+            taxPidentInputDict[seqName].append(taxPident)
+            rawTaxDict[seqName].append(line)
+    for item in frequencyTable.index.tolist():
+        if item not in taxIdInputDict:
+            taxIdInputDict[item] = ''
+            taxPidentInputDict[item] = ''
+            rawTaxDict[item] = ''
+    return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
 def idtaxaToMemory():
     '''
@@ -159,7 +179,7 @@ def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_
     if taxonomyFileType == 'blast':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
     elif taxonomyFileType == 'sintax':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = sintaxToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar, console)
     elif taxonomyFileType == 'bold':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
     elif taxonomyFileType == 'idtaxa':

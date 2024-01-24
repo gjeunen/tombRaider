@@ -11,10 +11,6 @@ import pandas as pd
 ########################
 # tombRaider FUNCTIONS #
 ########################
-def checkParamsNotNone(**kwargs):
-    none_args = [arg_name for arg_name, arg_value in kwargs.items() if arg_value is None]
-    return none_args
-
 def checkTaxonomyFiles(blast_input_, bold_input_, sintax_input_, idtaxa_input_):
     taxonomy_file_type_mapping = {
     'blast': blast_input_,
@@ -156,6 +152,23 @@ def sintaxToMemory():
 def idtaxaToMemory():
     '''
     '''
+
+def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console):
+    '''
+    '''
+    if taxonomyFileType == 'blast':
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+    elif taxonomyFileType == 'sintax':
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+    elif taxonomyFileType == 'bold':
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+    elif taxonomyFileType == 'idtaxa':
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+    else:
+        console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
+        exit()
+
+    return taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar
 
 def removeNegativeSamples(negative, frequencyTableSubset):
     '''

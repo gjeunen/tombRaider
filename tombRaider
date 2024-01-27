@@ -74,6 +74,7 @@ click.rich_click.OPTION_GROUPS = {
             "name": "Taxonomy file details",
             "options": [
                 "--blast-format",
+                "--use-accession-id",
                 "--bold-format",
                 "--sintax-threshold",
             ],
@@ -105,6 +106,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--local-ratio", "local_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across samples with positive detections")
 @click.option("--count", type = int, help = "maximum number of samples with a presence of child and absence of parent")
 @click.option("--blast-format", "blast_format_", default = "6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen", help = "format of 'blast-input' file as provided to parameter 'outfmt' in blastn")
+@click.option("--use-accession-id", "use_accession_id_", is_flag = True, help = "set accession number as taxonomic ID (for intraspecific variation)")
 @click.option("--bold-format", "bold_format_", help = "'bold-input' file format: 'summary' (default), 'complete'")
 @click.option("--sintax-threshold", "sintax_threshold_", is_flag = True, help = 'set sintax id and similarity to threshold column')
 @click.option("--taxa-are-rows", "taxa_are_rows_", default = True, help = "True: column headers = samples (default); False: column headers = taxa")
@@ -113,7 +115,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--sort", "sort_", help = "method to sort input files: 'total read count', 'average read count', 'detections'")
 @click.option("--example-run", "example_run_", is_flag = True, help = "run tombRaider using the example files")
 
-def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, bold_format_, sintax_threshold_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
+def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefacts from metabarcoding datasets.
     
     The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
@@ -184,7 +186,7 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
                 elif inputFilePath == sequence_input_:
                     seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
                 elif inputFilePath == taxonomyInputFile:
-                    taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console)
+                    taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console)
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()

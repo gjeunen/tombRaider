@@ -89,20 +89,31 @@ def zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar):
             seqInputDict[item] = ''
     return seqInputDict, pbar, progress_bar
 
-def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console):
+def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accession_id_, seqInputDict, pbar, progress_bar, console):
     '''
     Function parsing the BLAST taxonomy file
     For now it only takes in the specific outfmt "6" structure
     '''
-    neededBlastInfo = {'qaccver': None,
-                       'qcovs': None,
-                       'pident': None,
-                       'staxid': None,
-                       'evalue': None,
-                       'length': None,
-                       'gapopen': None,
-                       'mismatch': None,
-    }
+    if use_accession_id_:
+        neededBlastInfo = {'qaccver': None,
+                        'qcovs': None,
+                        'pident': None,
+                        'saccver': None,
+                        'evalue': None,
+                        'length': None,
+                        'gapopen': None,
+                        'mismatch': None,
+        }
+    else:
+        neededBlastInfo = {'qaccver': None,
+                        'qcovs': None,
+                        'pident': None,
+                        'saccver': None,
+                        'evalue': None,
+                        'length': None,
+                        'gapopen': None,
+                        'mismatch': None,
+        }
     blastFormattingList = blast_format_.split(' ')
     if blastFormattingList[0] != '6':
         console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]blast format identified as '{blastFormattingList[0]}', only format '6' is supported, aborting analysis...[/]\n")
@@ -127,7 +138,10 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict
                 taxPident = float(line.split('\t')[neededBlastInfo['pident']])
             else:
                 taxPident = float(100 * ((int(line.split('\t')[neededBlastInfo['length']]) - int(line.split('\t')[neededBlastInfo['mismatch']]) - int(line.split('\t')[neededBlastInfo['gapopen']])) / len(seqInputDict[seqName])))
-            taxID = line.split('\t')[neededBlastInfo['staxid']]
+            if use_accession_id_:
+                taxID = line.split('\t')[neededBlastInfo['saccver']]
+            else:
+                taxID = line.split('\t')[neededBlastInfo['staxid']]
             evalNumber = float(line.split('\t')[neededBlastInfo['evalue']])
             rawTaxDict[seqName].append(line)
             if all(evalNumber <= item for item in taxEvalInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
@@ -176,11 +190,11 @@ def idtaxaToMemory():
     '''
     '''
 
-def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console):
+def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console):
     '''
     '''
     if taxonomyFileType == 'blast':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accession_id_, seqInputDict, pbar, progress_bar, console)
     elif taxonomyFileType == 'sintax':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, progress_bar)
     elif taxonomyFileType == 'bold':

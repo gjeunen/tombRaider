@@ -57,7 +57,7 @@ With *tombRaider* only a single line of code is required to identify and remove 
 To run *tombRaider with default values, use the following line of code:
 
 ```{code-block} bash
-tombRaider 
+tombRaider --method 'taxon-dependent co-occurrence' --frequency-input countTable.txt --sequence-input sequences.fasta --blast-input blastnResults.txt --frequency-output countTableNew.txt --sequence-output sequencesNew.fasta --blast-output blastnResultsNew.txt --condensed-log condensedLog.txt --detailed-log detailedLog.txt --count 0 --sort 'total read count'
 ```
 
 Detailed information about all the input file structures (section 4. Input files) and all parameters (section 5. Parameters) can be found below.

@@ -62,7 +62,7 @@ click.rich_click.OPTION_GROUPS = {
             ],
         },
         {
-            "name": "Frequency file details",
+            "name": "Frequency table details",
             "options": [
                 "--taxa-are-rows",
                 "--omit-rows",
@@ -113,7 +113,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--sort", "sort_", help = "method to sort input files: 'total read count', 'average read count', 'detections'")
 @click.option("--example-run", "example_run_", is_flag = True, help = "run tombRaider using the example files")
 
-def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, bold_format_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
+def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, bold_format_, sintax_threshold_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefacts from metabarcoding datasets.
     
     The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
@@ -184,7 +184,7 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
                 elif inputFilePath == sequence_input_:
                     seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
                 elif inputFilePath == taxonomyInputFile:
-                    taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, bold_format_, seqInputDict, pbar, progress_bar, console)
+                    taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console)
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()

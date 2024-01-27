@@ -6,7 +6,7 @@
 
 ## 2. Installation
 
-*tombRaider* is a command-line only toolkit running on typical Unix/Linux environments and is exclusively written in Python3. Due to the native implementation of the incorporated functions, only a limited number of dependencies restricted to non-built-in Python3 modules are required for successful code execution. A complete list of the dependencies can be found below. *tombRaider* can be installed manually from GitHub. Remember to install the dependencies separately! Below are details for the manual installation process and a list of current dependencies with compatible versions.
+*tombRaider* is a command-line only toolkit running on typical Unix/Linux environments and is exclusively written in Python3. *tombRaider* can be installed manually from GitHub. Below are details for the manual installation process (section 2.1 Manual installation). Due to the native implementation of the incorporated functions, only a limited number of dependencies restricted to non-built-in Python3 modules are required for *tombRaider* to successfully execute. A complete list of the dependencies can be found below (section 2.2 Dependencies). Remember to install the dependencies separately, since the GitHub installation of *tombRaider* will not install the dependencies for you!
 
 ### 2.1 Manual installation
 
@@ -54,6 +54,14 @@ tombRaider --example-run
 
 With *tombRaider* only a single line of code is required to identify and remove artefacts from your metabarcoding data!
 
+To run *tombRaider with default values, use the following line of code:
+
+```{code-block} bash
+tombRaider 
+```
+
+Detailed information about all the input file structures (section 4. Input files) and all parameters (section 5. Parameters) can be found below.
+
 ## 4. Input files
 
-An example of all input files can be found in the `exampleFiles` subdirectory on GitHub or where *tombRaider* is installed on your OS. This file list can help determine the file structures required by *tombRaider* when formatting errors are preventing a successful execution of *tombRaider* on your local files.
+An example of all input files can be found in the `exampleFiles` subdirectory on GitHub or where *tombRaider* is installed on your OS. This file list can help determine the file structures required by *tombRaider* when formatting errors are preventing a successful execution on your local files.

@@ -54,14 +54,108 @@ tombRaider --example-run
 
 With *tombRaider* only a single line of code is required to identify and remove artefacts from your metabarcoding data!
 
-To run *tombRaider with default values, use the following line of code:
+To run *tombRaider* with default values, use the following line of code:
 
 ```{code-block} bash
 tombRaider --method 'taxon-dependent co-occurrence' --frequency-input countTable.txt --sequence-input sequences.fasta --blast-input blastnResults.txt --frequency-output countTableNew.txt --sequence-output sequencesNew.fasta --blast-output blastnResultsNew.txt --condensed-log condensedLog.txt --detailed-log detailedLog.txt --count 0 --sort 'total read count'
 ```
 
-Detailed information about all the input file structures (section 4. Input files) and all parameters (section 5. Parameters) can be found below.
+Detailed information about all input file structures (section 4. Input files) and parameters (section 5. Parameters) can be found below.
 
 ## 4. Input files
 
 An example of all input files can be found in the `exampleFiles` subdirectory on GitHub or where *tombRaider* is installed on your OS. This file list can help determine the file structures required by *tombRaider* when formatting errors are preventing a successful execution on your local files.
+
+### 4.1 Count table
+
+### 4.2 Sequence list
+
+### 4.3 Taxonomy assignment
+
+#### 4.3.1 BLAST
+
+#### 4.3.2 BOLD
+
+#### 4.3.3 SINTAX
+
+#### 4.3.4 IDTAXA
+
+## 5. Parameters
+
+### 5.1 Main function
+
+#### 5.1.1 --method
+
+### 5.2 Parameters
+
+#### 5.2.1 --occurrence-type
+
+#### 5.2.2 --detection-threshold
+
+#### 5.2.3 --similarity
+
+#### 5.2.4 --negative
+
+#### 5.2.5 --global-ratio
+
+#### 5.2.6 --local-ratio
+
+#### 5.2.7 --count
+
+### 5.3 Input files
+
+#### 5.3.1 --frequency-input
+
+#### 5.3.2 --sequence-input
+
+#### 5.3.3 --blast-input
+
+#### 5.3.4 --bold-input
+
+#### 5.3.5 --sintax-input
+
+#### 5.3.6 --idtaxa-input
+
+### 5.4 Output files
+
+#### 5.4.1 --frequency-output
+
+#### 5.4.2 --sequence-output
+
+#### 5.4.3 --blast-output
+
+#### 5.4.4 --bold-output
+
+#### 5.4.5 --sintax-output
+
+#### 5.4.6 --idtaxa-output
+
+#### 5.4.7 --condensed-log
+
+#### 5.4.8 --detailed-log
+
+### 5.5 Frequency table details
+
+#### 5.5.1 --taxa-are-rows
+
+#### 5.5.2 --omit-rows
+
+#### 5.5.3 --omit-columns
+
+#### 5.5.4 --sort
+
+### 5.6 Taxonomy file details
+
+#### 5.6.1 --blast-format
+
+#### 5.6.2 --use-accession-id
+
+#### 5.6.3 --bold-format
+
+#### 5.6.4 --sintax-threshold
+
+### 5.7 Options
+
+#### 5.7.1 --example-run
+
+#### 5.7.2 --help

@@ -200,7 +200,7 @@ def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_
     elif taxonomyFileType == 'bold':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console)
     elif taxonomyFileType == 'idtaxa':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = idtaxaToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
     else:
         console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
         exit()

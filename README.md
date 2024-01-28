@@ -86,15 +86,25 @@ WARNING | --frequency-output not specified, not writing updated table to file...
 
 ### 4.2 Sequence list
 
+The sequence file should be in the format of a .fasta file, either as a 2-line or multi line structure. The sequence file can be provided with the `--sequence-input` parameter. An updated sequence file, whereby artefacts are removed, can be written to an output file using the `--sequence-output` paramter. If the `--sequence-output` parameter is not provided, the following warning message will be printed in bold yellow in the Terminal window by *tombRaider*:
+
+```{note}
+WARNING | --sequence-output not specified, not writing updated seq list to file...
+```
+
 ### 4.3 Taxonomy assignment
 
 #### 4.3.1 BLAST
 
 #### 4.3.2 BOLD
 
+TBA
+
 #### 4.3.3 SINTAX
 
 #### 4.3.4 IDTAXA
+
+TBA
 
 ## 5. Parameters
 

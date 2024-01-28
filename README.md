@@ -145,6 +145,8 @@ TBA
 
 #### 4.3.3 SINTAX
 
+The SINTAX algorithm predicts the taxonomy of marker gene reads based on k-mer similarity and is implemented in [USEARCH](https://www.drive5.com/usearch/) and [VSEARCH](https://github.com/torognes/vsearch). When the SINTAX classification algorithm was used for taxonomy assignment during the bioinformatic pipeline, the input file can be provided using the `--sintax-input` parameter. To write the updated list with artefacts removed, use the `--sintax-output` parameter. The SINTAX reports should be in tab-delimited format, which is the default format for [USEARCH](https://www.drive5.com/usearch/) and [VSEARCH](https://github.com/torognes/vsearch). *tombRaider* defaults to using the SINTAX results without a threshold applied, i.e., the second column in the SINTAX report. Use the `--sintax-threshold` parameter without arguments for *tombRaider* to use the SINTAX results where the user-defined threshold has been applied, i.e., the fourth column in the SINTAX report.
+
 #### 4.3.4 IDTAXA
 
 TBA

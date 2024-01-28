@@ -35,6 +35,7 @@ click.rich_click.OPTION_GROUPS = {
                 "--global-ratio",
                 "--local-ratio",
                 "--count",
+                "--sort",
             ],
         },
         {
@@ -67,7 +68,6 @@ click.rich_click.OPTION_GROUPS = {
                 "--taxa-are-rows",
                 "--omit-rows",
                 "--omit-columns",
-                "--sort",
             ],
         },
         {

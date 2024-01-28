@@ -62,11 +62,27 @@ tombRaider --method 'taxon-dependent co-occurrence' --frequency-input countTable
 
 Detailed information about all input file structures (section 4. Input files) and parameters (section 5. Parameters) can be found below.
 
-## 4. Input files
+## 4. Input and output files
 
 An example of all input files can be found in the `exampleFiles` subdirectory on GitHub or where *tombRaider* is installed on your OS. This file list can help determine the file structures required by *tombRaider* when formatting errors are preventing a successful execution on your local files.
 
 ### 4.1 Count table
+
+The count table, also known as frequency table, OTU table, or ASV table, should be a tab-delimited file whereby the taxa are represented in rows and samples in columns. The first row of the file is treated as the column headers (sample list), while the first column is treated as row names (sequence or OTU names). The count table can be read in through the `--frequency-input` parameter and is required for *tombRaider* to successfully execute. If your count table is oriented in the opposite direction, i.e., samples as rows and taxa as columns, the `--taxa-are-rows` parameter should be set to `'False'`. If your count table is oriented in the correct direction, you can omit the `--taxa-are-rows` parameter, as it will default to `'True'`.
+
+For *tombRaider* to execute successfully, the count table should not contain any metadata rows or columns. Frequently-occurring metadata columns in a count table could, for instance, be the taxonomic ID for a sequence or the actual sequence of the OTU. If any metadata columns or rows are present in your count table, you can provide the column header(s) and/or row name(s) using the `--omit-columns` and `--omit-rows` parameters, respectively. Multiple labels can be provided to the parameters using the `,` delimiter. Do not use spaces after the `,`!
+
+Please note that columns and headers will be removed prior to transposing the table when `--taxa-are-rows` is set to `'False'`. So, if your count table is oriented whereby the taxa are columns and one of the rows contains the taxonomic ID with label taxID, use the following line of code:
+
+```{code-block} bash
+tombRaider --frequency-input countTable.txt --taxa-are-rows False --omit-rows 'taxID' ...
+```
+
+An updated count table, whereby child sequences are merged with parent sequences, can be written to an output file using the `--frequency-output` parameter. If the `--frequency-output` parameter is not provided, the following warning message will be printed in bold yellow in the Terminal window by *tombRaider*:
+
+```{note}
+WARNING | --frequency-output not specified, not writing updated table to file...
+```
 
 ### 4.2 Sequence list
 
@@ -102,60 +118,12 @@ An example of all input files can be found in the `exampleFiles` subdirectory on
 
 #### 5.2.7 --count
 
-### 5.3 Input files
+#### 5.2.8 --sort
 
-#### 5.3.1 --frequency-input
+### 5.3 Options
 
-#### 5.3.2 --sequence-input
+#### 5.3.1 --example-run
 
-#### 5.3.3 --blast-input
+#### 5.3.2 --help
 
-#### 5.3.4 --bold-input
-
-#### 5.3.5 --sintax-input
-
-#### 5.3.6 --idtaxa-input
-
-### 5.4 Output files
-
-#### 5.4.1 --frequency-output
-
-#### 5.4.2 --sequence-output
-
-#### 5.4.3 --blast-output
-
-#### 5.4.4 --bold-output
-
-#### 5.4.5 --sintax-output
-
-#### 5.4.6 --idtaxa-output
-
-#### 5.4.7 --condensed-log
-
-#### 5.4.8 --detailed-log
-
-### 5.5 Frequency table details
-
-#### 5.5.1 --taxa-are-rows
-
-#### 5.5.2 --omit-rows
-
-#### 5.5.3 --omit-columns
-
-#### 5.5.4 --sort
-
-### 5.6 Taxonomy file details
-
-#### 5.6.1 --blast-format
-
-#### 5.6.2 --use-accession-id
-
-#### 5.6.3 --bold-format
-
-#### 5.6.4 --sintax-threshold
-
-### 5.7 Options
-
-#### 5.7.1 --example-run
-
-#### 5.7.2 --help
+Display *tombRaider*'s help information in the Terminal window.

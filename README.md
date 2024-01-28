@@ -94,6 +94,10 @@ WARNING | --sequence-output not specified, not writing updated seq list to file.
 
 ### 4.3 Taxonomy assignment
 
+*tombRaider* currently supports 4 taxonomy classification methods for optimal flexibility of a user's bioinformatic pipeline, including BLAST, BOLD, SINTAX, and IDTAXA. The taxonomy input file is essential when specifying the `taxon-dependent co-occurrence` and `taxon-dependent merging` options for the `--method` parameter (please find more info in section 5.1 Main function). When specifying `--method taxon-independent co-occurrence`, no taxonomy input file is needed for *tombRaider* to execute. However, a taxonomy input and output file can still be provided in this case, which will subset the taxonomy file and remove the artefacts in the specified output file. This functionality is included to ensure all documents are updated and allow for easy import in other software packages without errors, such as [phyloseq](https://joey711.github.io/phyloseq/). 
+
+Please find below more detailed information about each of the 4 taxonomy classification format requirements for *tombRaider*.
+
 #### 4.3.1 BLAST
 
 #### 4.3.2 BOLD

@@ -163,6 +163,10 @@ TBA
 
 ### 4.4 Log files
 
+Besides the summary report *tombRaider* prints to the Terminal window (please see an example summary report provided by *tombRaider* when running `tombRaider --example-run`), two different log files can be written to output files by *tombRaider*, including a condensed log file (`--condensed-log`) and a detailed log file (`--detailed-log`). Information about the structure of each log file can be found in [4.4.1 condensed log file](#441-condensed-log-file) and [4.4.2 detailed log file](#442-detailed-log-file).
+
+![tombRaider --example-run](figures/example-run.png)
+
 #### 4.4.1 condensed log file
 
 TBA

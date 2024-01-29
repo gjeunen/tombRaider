@@ -151,7 +151,17 @@ Please note that this option to investigate intra-specific variation is only ava
 
 #### 4.3.2 BOLD
 
-TBA
+The BOLD IDentification Engine can be used to match query sequences to the [BOLD reference database](https://boldsystems.org) and is frequently used in metabarcoding research when the primers amplify the COI gene for animals, ITS gene for fungi, and RBCL & MATK genes for plants. *tombRaider* can read in BOLD IDE results using the `--bold-input` parameter and output the updated BOLD IDE results, with artefacts removed, using the `--bold-output` parameter. *tombRaider* currently supports two output formats from the BOLD IDE, including the summary results and the complete report. The format can be specified using the `--bold-format` parameter.
+
+##### 4.3.2.1 --bold-format summary
+
+The BOLD IDE summary report can be obtained by clicking the Download button on the BOLD IDENTIFICATION ENGINE: RESULTS webpage. Please see the screenshot below for additional information. The downloaded file should be a .xls file. No additional changes should be made prior to importing the file into *tombRaider*!
+
+![bold summary](figures/bold-summary.png)
+
+##### 4.3.2.2 --bold-format complete
+
+The complete BOLD IDE report can be obtained through [BOLDIGGER](https://github.com/DominikBuchner/BOLDigger), a python program developed and published in 2020 by [Buchner & Leese, 2020](https://mbmg.pensoft.net/article/53535/). For more information on obtaining the report from BOLDIGGER, please visit the [BOLDIGGER GitHub manual](https://github.com/DominikBuchner/BOLDigger). No additional changes should be made prior to importing the file into *tombRaider*!
 
 #### 4.3.3 SINTAX
 

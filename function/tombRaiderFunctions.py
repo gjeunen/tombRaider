@@ -159,7 +159,37 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accessio
 
 def boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console):
     '''
+    Function parsing the BOLD taxonomy file
+    Either the summary report (website) or the complete BOLD IDE results (BOLDIGGER)
     '''
+    taxIdInputDict = collections.defaultdict(list)
+    taxPidentInputDict = collections.defaultdict(list)
+    rawTaxDict = collections.defaultdict(list)
+    if bold_format_ == 'summary':
+        with open(taxonomyInputFile, 'r') as taxFile:
+            for line in taxFile:
+                progress_bar.update(pbar, advance = len(line))
+                seqName = line.split('\t')[0]
+                taxID = line.split('\t')[1]
+                try:
+                    taxPident = float(line.split('\t')[3])
+                except IndexError:
+                    taxPident = 0.0
+                taxIdInputDict[seqName].append(taxID)
+                taxPidentInputDict[seqName].append(taxPident)
+                rawTaxDict[seqName].append(line)
+        for item in frequencyTable.index.tolist():
+            if item not in taxIdInputDict:
+                taxIdInputDict[item] = ''
+                taxPidentInputDict[item] = ''
+                rawTaxDict[item] = ''
+    elif bold_format_ == 'complete':
+        print('complete')
+    else:
+        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]'{bold_format_}' not identified, aborting analysis...[/]\n")
+        exit()
+    return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
+
 
 def sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, progress_bar):
     '''
@@ -188,10 +218,6 @@ def sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, p
             rawTaxDict[item] = ''
     return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
-def idtaxaToMemory():
-    '''
-    '''
-
 def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console):
     '''
     '''
@@ -202,7 +228,7 @@ def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_
     elif taxonomyFileType == 'bold':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console)
     elif taxonomyFileType == 'idtaxa':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = idtaxaToMemory(taxonomyInputFile, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, progress_bar)
     else:
         console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
         exit()

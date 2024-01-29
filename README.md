@@ -173,6 +173,76 @@ The parameter `--occurrence-type` enables users to specify if the co-occurrence 
 
 When `--occurrence-type abundance` is selected, for the co-occurrence pattern to hold true, the parent will need to achieve a higher read abundance than the child. The user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [section 5.2.5 count, --global-ratio, --local-ratio](####-5.2.5-count,-global-ratio,-local-ratio)).
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #### 5.2.2 --detection-threshold
 
 #### 5.2.3 --similarity

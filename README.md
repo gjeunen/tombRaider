@@ -286,7 +286,7 @@ Users, however, can specify the frequency for which the co-occurrence pattern do
 
 ##### 5.2.5.1 --count
 
-The `--count` parameter specifies the number of times a child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`). Let's look at the following example to illustrate the functionality of `--count`. Assume the table below to be our count table input file.
+The first parameter users can specify the frequency for which the co-occurrence pattern has to hold true is the `--count` parameter. The `--count` parameter specifies the number of times a child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`). Let's look at the following example to illustrate the functionality of `--count`. Assume the table below to be our count table input file.
 
 | OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
@@ -306,6 +306,33 @@ tombRaider --occurrence-type abundance --count 1 ...
 ```
 
 `Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for all samples, except for the single sample `Sample 1`.
+
+##### 5.2.5.2 --global-ratio
+
+The second parameter users can specify the frequency for which the co-occurrence pattern has to hold true is the `--global-ratio` parameter. The `--global-ratio` parameter specifies the ratio whereby the child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`) divided by the total number of samples in the count table.
+
+Let's look at the following example to illustrate the functionality of `--global-ratio`. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 500 | 400 | 200 | 100 |
+| Seq 2 | 100 | 200 | 200 | 0 | 2 |
+
+When specifying `--global-ratio 1`, the co-occurrence pattern must hold true for all samples.
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --global-ratio 1 ...
+```
+
+Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `--global-ratio` is set to `0.8`:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --global-ratio 0.8 ...
+```
+
+`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 4 out of 5 samples (= 80%).
+
+##### 5.2.5.3 --local-ratio
 
 #### 5.2.6 --sort
 

@@ -167,6 +167,8 @@ Besides the summary report *tombRaider* prints to the Terminal window (please se
 
 ![tombRaider --example-run](figures/example-run.png)
 
+The summary report printed to the Terminal window provides information about the algorithm used to analyse the data on the first line, progress bars and elapsed time during file inport and the identification of artefacts in the second and third lines. Potential warning messages are written below the progress bars when output files are not specified. Below the progress bars and potential warning messages are the summary statistics, including the total number of sequences analysed by *tombRaider*, the total number of artefacts identified with the proportion between brackets, followed by a list of each parent and identified children.
+
 #### 4.4.1 condensed log file
 
 TBA

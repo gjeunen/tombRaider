@@ -151,6 +151,16 @@ The SINTAX algorithm predicts the taxonomy of marker gene reads based on k-mer s
 
 TBA
 
+### 4.4 Log files
+
+#### 4.4.1 condensed log file
+
+TBA
+
+#### 4.4.2 detailed log file
+
+TBA
+
 ## 5. Parameters
 
 Please find below the details about all parameters incorporated into *tombRaider*. Parameters associated with input and output files can be found in [4. Input and output files](#4-input-and-output-files).
@@ -197,6 +207,37 @@ tombRaider --occurrence-type 'presence-absence' ...
 `Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since `Seq 2` is only present in samples when `Seq 1` is detected.
 
 #### 5.2.2 --detection-threshold
+
+With the `--detection-threshold` parameter, users can define the minimum read abundance needed for a detection to hold true.
+
+Metabarcoding data sets can contain so-called "background noise" originating from a variety of sources, e.g., tag-jumping (please see [Schnell et al., 2015](https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.12402) and [Rodriguez-Martinez et al., 2022](https://onlinelibrary.wiley.com/doi/full/10.1111/1755-0998.13745) for more information) or incorrect assigned sequences during demultiplexing. Low-abundant detections, such as singleton detections, are therefore frequently removed from metabarcoding data sets prior to statistical analysis.
+
+When analysing the co-occurrence pattern of parent-child sequences, this "background noise" can be removed using the `--detection-threshold` parameter. The default value for this parameter is set to `1`, indicating singleton detections to be included in the analysis. To exclude singleton detections, this value should be set to `2`. Higher values can be specified as well to remove low-abundant detections from the co-occurrence pattern analysis. Please note that while low-abundant detections can be removed from the co-occurrence pattern analysis using the `--detection-threshold` parameter, these low-abundant detections will not be removed from the final count table written to the output file using the `--frequency-output` parameter!
+
+Let's look at the following example to show how the `--detection-threshold` parammeter functions. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 500 | 400 | 200 | 100 |
+| Seq 2 | 1 | 200 | 200 | 0 | 2 |
+
+In our example, `Seq 2` is being analysed as a child of `Seq 1`. With the following default values:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --detection-threshold 1 ...
+```
+
+`Seq 2` is rejected as the child of `Seq 1`, since the co-occurrence pattern does not hold true. `Seq 2` is present in `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when removing singleton detections from the count table:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --detection-threshold 2 ...
+```
+
+`Seq 2` is accepted as the child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the read count of `Seq 2` in `Sample 1` is now set to `0`. While singleton detections are removed from the co-occurrence pattern analysis, the output file contains all original reads. Hence, the resulting table will look like:
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 1 | 700 | 600 | 200 | 102 |
 
 #### 5.2.3 --similarity
 

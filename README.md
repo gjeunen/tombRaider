@@ -171,7 +171,7 @@ Please find below the details about all parameters incorporated into *tombRaider
 
 The parameter `--occurrence-type` enables users to specify if the co-occurrence pattern between parent and child sequences should be based on read abundance (`--occurrence-type abundance`) or presence-absence (`--occurrence-type 'presence-absence'`), with the default set to `--occurrence-type abundance`.
 
-When `--occurrence-type abundance` is selected, for the co-occurrence pattern to hold true, the parent will need to achieve a higher read abundance than the child. The user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [section 5.2.5 count, --global-ratio, --local-ratio](####5.2.5count,--global-ratio,--local-ratio)).
+When `--occurrence-type abundance` is selected, for the co-occurrence pattern to hold true, the parent will need to achieve a higher read abundance than the child. The user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [section 5.2.5 count, --global-ratio, --local-ratio](####-5.2.5-count,-global-ratio,-local-ratio)).
 
 #### 5.2.2 --detection-threshold
 

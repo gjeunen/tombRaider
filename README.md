@@ -44,11 +44,21 @@ tombRaider -h
 
 ![tombRaider help prompt](figures/help-prompt.png)
 
-Additionally, you can run *tombRaider* on example files in the `exampleFiles` subdirectory by executing:
+Additionally, you can run *tombRaider* on the example files in the `exampleFiles` subdirectory by executing:
 
 ```{code-block} bash
 tombRaider --example-run
 ```
+
+The code above equates to running the following line of code:
+
+```{code-block} bash
+tombRaider --method 'taxon-dependent co-occurrence' --frequency-input 'zotutabweb.txt' --blast-input 'blastTaxonomy.txt' --sequence-input 'zotus.fasta' --occurrence-type abundance --count 0 --sort 'total read count'
+```
+
+*tombRaider* will figure out the absolute path of the necessary files based on where *tombRaider* is installed on your OS to run this command. The output of the command should be as follows:
+
+![tombRaider --example-run](figures/example-run.png)
 
 ## 3. Code execution
 
@@ -426,11 +436,3 @@ Will be transformed to:
 | Seq 2 | 100 | 0 | 200 | 0 | 2 |
 
 Since, the average read count for `Seq 3`, `Seq 4`, `Seq 1`, and `Seq 2`. The order of `Seq 4`, `Seq 1`, and `Seq 2` is determined on total read count.
-
-### 5.3 Options
-
-#### 5.3.1 --example-run
-
-#### 5.3.2 --help
-
-Display *tombRaider*'s help information in the Terminal window.

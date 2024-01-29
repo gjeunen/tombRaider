@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-*tombRaider* is an algorithm capable of identifying and removing artefact sequences from metabarcoding data.
+Thank you for using *tombRaider*, an algorithm capable of identifying and removing artefact sequences from metabarcoding data sets.
 
 ## 2. Installation
 
@@ -153,9 +153,17 @@ TBA
 
 ## 5. Parameters
 
-### 5.1 Main function
+Please find below the details about all parameters incorporated into *tombRaider*. Parameters associated with input and output files can be found in section 4. Input and output files.
+
+### 5.1 Main algorithm
 
 #### 5.1.1 --method
+
+*tombRaider* currently supports 3 algorithms to identify artefact sequences in metabarcoding data sets, including one novel approach and two widely-used methods in the metabarcoding research community. The algorithms can be specified using the `--method` parameter. The following three options are currently supported:
+
+1. `--method 'taxon-dependent co-occurrence'`: This novel approach is the default setting in *tombRaider* and allows for the most accurate species and haplotype recovery from metabarcoding data sets. Artefacts are identified based on taxonomic classification, sequence similarity, and co-occurrence patterns. For more information about the optional parameters, please see section 5.2 Parameters. This algorithm is currently the only automated method to recover haplotypes from metabarcoding data sets.
+2. `--method 'taxon-independent co-occurrence'`: This approach identifies artefacts based on sequence similarity and co-occurrence patterns. It was pioneered by [Froslev et al](https://github.com/tobiasgf/lulu) and has since seen alteration and optimisation in a variety of settings, e.g., [mumu](https://github.com/frederic-mahe/mumu).
+3. `--method 'taxon-dependent merging'`: This approach merges sequences based on taxonomic ID and is a widely-used approach in the metabarcoding research community.
 
 ### 5.2 Parameters
 

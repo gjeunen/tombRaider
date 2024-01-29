@@ -20,7 +20,7 @@ click.rich_click.STYLE_ERRORS_SUGGESTION = ""
 click.rich_click.OPTION_GROUPS = {
     "tombRaider": [
         {
-            "name": "Main function",
+            "name": "Main algorithm",
             "options": [
                 "--method",
             ],

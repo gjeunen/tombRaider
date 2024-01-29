@@ -171,11 +171,19 @@ The summary report printed to the Terminal window provides information about the
 
 #### 4.4.1 condensed log file
 
-TBA
+The condensed log file starts with essential summary information, including the date and time the code was executed, the exact code that was run, details about the chosen parameters, and the summary results as printed in the Terminal window. Following the summary information is the condensed analysis for each sequence, providing information for which sequence there were matching taxonomic IDs, BLAST score threshold, co-occurrence pattern, sequence similarity threshold, and if a parent was identified.
+
+An example of the condensed log file can be found below:
+
+![tombRaider --condensed-log](figures/condensed-log.png)
 
 #### 4.4.2 detailed log file
 
-TBA
+The detailed log file starts with essential summary information, including the date and time the code was executed, the exact code that was run, details about the chosen parameters, and the summary results as printed in the Terminal window. Following the summary information is the detailed analysis for each sequence, providing information for which sequence there were matching taxonomic IDs, BLAST score threshold, co-occurrence pattern, sequence similarity threshold, and if a parent was identified, as well as the specific values for each parameter.
+
+An example of the detailed log file can be found below:
+
+![tombRaider --detailed-log](figures/detailed-log.png)
 
 ## 5. Parameters
 

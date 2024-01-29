@@ -162,12 +162,16 @@ Please find below the details about all parameters incorporated into *tombRaider
 *tombRaider* currently supports 3 algorithms to identify artefact sequences in metabarcoding data sets, including one novel approach and two widely-used methods in the metabarcoding research community. The algorithms can be specified using the `--method` parameter. The following three options are currently supported:
 
 1. `--method 'taxon-dependent co-occurrence'`: This novel approach is the default setting in *tombRaider* and allows for the most accurate species and haplotype recovery from metabarcoding data sets. Artefacts are identified based on taxonomic classification, sequence similarity, and co-occurrence patterns. For more information about the optional parameters, please see section 5.2 Parameters. This algorithm is currently the only automated method to recover haplotypes from metabarcoding data sets.
-2. `--method 'taxon-independent co-occurrence'`: This approach identifies artefacts based on sequence similarity and co-occurrence patterns. It was pioneered by [Froslev et al](https://github.com/tobiasgf/lulu) and has since seen alteration and optimisation in a variety of settings, e.g., [mumu](https://github.com/frederic-mahe/mumu).
+2. `--method 'taxon-independent co-occurrence'`: This approach identifies artefacts based on sequence similarity and co-occurrence patterns. It was pioneered by [Froslev et al., 2017](https://github.com/tobiasgf/lulu) and has since seen alteration and optimisation in a variety of settings, e.g., [mumu](https://github.com/frederic-mahe/mumu).
 3. `--method 'taxon-dependent merging'`: This approach merges sequences based on taxonomic ID and is a widely-used approach in the metabarcoding research community.
 
 ### 5.2 Parameters
 
 #### 5.2.1 --occurrence-type
+
+The parameter `--occurrence-type` enables users to specify if the co-occurrence pattern between parent and child sequences should be based on read abundance (`--occurrence-type abundance`) or presence-absence (`--occurrence-type 'presence-absence'`), with the default set to `--occurrence-type abundance`.
+
+When `--occurrence-type abundance` is selected, for the co-occurrence pattern to hold true, the parent will need to achieve a higher read abundance than the child. The user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [section 5.2.5 count, --global-ratio, --local-ratio]).
 
 #### 5.2.2 --detection-threshold
 
@@ -175,13 +179,9 @@ Please find below the details about all parameters incorporated into *tombRaider
 
 #### 5.2.4 --negative
 
-#### 5.2.5 --global-ratio
+#### 5.2.5 count, --global-ratio, --local-ratio
 
-#### 5.2.6 --local-ratio
-
-#### 5.2.7 --count
-
-#### 5.2.8 --sort
+#### 5.2.6 --sort
 
 ### 5.3 Options
 

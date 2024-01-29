@@ -334,6 +334,29 @@ tombRaider --occurrence-type abundance --global-ratio 0.8 ...
 
 ##### 5.2.5.3 --local-ratio
 
+The third, and final, parameter users can specify the frequency for which the co-occurrence pattern has to hold true is the `--local-ratio` parameter. The `--local-ratio` parameter specifies the ratio whereby the child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`) divided by the total number of samples with a positive detection in child + parent.
+
+Let's look at the following example to illustrate the functionality of `--local-ratio`. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+When specifying `--local-ratio 1`, the co-occurrence pattern must hold true for all samples.
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --local-ratio 1 ...
+```
+
+Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `--local-ratio` is set to `0.75`:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --local-ratio 0.75 ...
+```
+
+`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 3 out of 4 samples with a positive detection of either the child or parent (= 75%).
+
 #### 5.2.6 --sort
 
 ### 5.3 Options

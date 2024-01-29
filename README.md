@@ -214,7 +214,7 @@ Metabarcoding data sets can contain so-called "background noise" originating fro
 
 When analysing the co-occurrence pattern of parent-child sequences, this "background noise" can be removed using the `--detection-threshold` parameter. The default value for this parameter is set to `1`, indicating singleton detections to be included in the analysis. To exclude singleton detections, this value should be set to `2`. Higher values can be specified as well to remove low-abundant detections from the co-occurrence pattern analysis. Please note that while low-abundant detections can be removed from the co-occurrence pattern analysis using the `--detection-threshold` parameter, these low-abundant detections will not be removed from the final count table written to the output file using the `--frequency-output` parameter!
 
-Let's look at the following example to show how the `--detection-threshold` parammeter functions. Assume the table below to be our count table input file.
+Let's look at the following example to show how the `--detection-threshold` parameter functions. Assume the table below to be our count table input file.
 
 | OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
@@ -252,6 +252,31 @@ tombRaider --negative 'ctrBlank+*NEG+Blk*+*Ext*' ...
 ```
 
 The argument passed to `--negative` in the example above will remove the sample `ctrBlank`, as well as all samples ending in `NEG`, all samples starting with `Blk`, and all samples containing `Ext` from the co-occurrence pattern analysis. Please note that the specified samples will not be removed in the final count table written to the output file using the `--frequency-output` parameter!
+
+Let's look at the following example as an illustration for the functionality of `--negative`. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 | NEG 1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Seq 1 | 100 | 500 | 400 | 200 | 100 | 0 |
+| Seq 2 | 50 | 200 | 200 | 0 | 2 | 5 |
+
+In our example, `Seq 2` is being analysed as a child of `Seq 1`. With the following default values:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance ...
+```
+
+`Seq 2` is rejected as the child of `Seq 1`, since the co-occurrence pattern does not hold true. `Seq 2` is present in `NEG 1`, while `Seq 1` is not detected in `NEG 1`. However, when removing negative controls from the co-occurrence pattern analysis by specifying `--negative 'NEG*'`:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --negative 'NEG*' ...
+```
+
+`Seq 2` is accepted as the child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the `NEG 1` column is now omitted from the co-occurence pattern analysis. While the `NEG 1` column is removed from the co-occurrence pattern analysis, the output file contains all original reads. Hence, the resulting table will look like:
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 | NEG 1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Seq 1 | 150 | 700 | 600 | 200 | 102 | 5 |
 
 #### 5.2.5 count, --global-ratio, --local-ratio
 

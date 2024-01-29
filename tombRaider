@@ -100,7 +100,7 @@ click.rich_click.OPTION_GROUPS = {
 @click.option("--detailed-log", "detailed_log_", help = "detailed log output file name")
 @click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern: 'presence-absence' or 'abundance' (default)")
 @click.option("--detection-threshold", "detection_threshold_", default = 1, help = "detection threshold to consider true detection (default = 1)")
-@click.option("--similarity", default = 90, help = "similarity threshold needed between child and parent (default = 90)")
+@click.option("--similarity", default = 90, help = "sequence similarity threshold between child and parent (default = 90)")
 @click.option("--negative", help = "list of negative control samples")
 @click.option("--global-ratio", "global_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across all samples")
 @click.option("--local-ratio", "local_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across samples with positive detections")

@@ -227,7 +227,7 @@ In our example, `Seq 2` is being analysed as a child of `Seq 1`. With the follow
 tombRaider --occurrence-type abundance --detection-threshold 1 ...
 ```
 
-`Seq 2` is rejected as the child of `Seq 1`, since the co-occurrence pattern does not hold true. `Seq 2` is present in `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when removing singleton detections from the count table:
+`Seq 2` is rejected as the child of `Seq 1`, since the co-occurrence pattern does not hold true. `Seq 2` is present in `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when removing singleton detections from the count table by specifying `--detection-threshold 2`:
 
 ```{code-block} bash
 tombRaider --occurrence-type abundance --detection-threshold 2 ...
@@ -240,6 +240,8 @@ tombRaider --occurrence-type abundance --detection-threshold 2 ...
 | Seq 1 | 1 | 700 | 600 | 200 | 102 |
 
 #### 5.2.3 --similarity
+
+The `--similarity` parameter specifies the sequence similarity threshold required between the child and parent sequence. The default for this parameter is set at 90, indicating the child needs to be at least 90% similar to the parent. The sequence similarity between parent and child is calculated from a global pairwise sequence alignment. The alignment algorithm implemented in *tombRaider* is the Needleman-Wunsch algorithm [Needleman & Wunsch, 1970](https://www.sciencedirect.com/science/article/pii/0022283670900574?via%3Dihub). The algorithm is natively coded in Python3 through dynamic programming for increased accurracy and speed, while also limiting the required number of dependencies for *tombRaider*. Once the global pairwise alignment has been generated, the sequence similarity is calculated by the following equation: 100 - (# of differences / alignment length * 100)
 
 #### 5.2.4 --negative
 

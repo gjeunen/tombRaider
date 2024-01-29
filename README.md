@@ -290,8 +290,8 @@ The first parameter users can specify the frequency for which the co-occurrence 
 
 | OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
-| Seq 1 | 0 | 500 | 400 | 200 | 100 |
-| Seq 2 | 100 | 200 | 200 | 0 | 2 |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
 
 When specifying `--count 0`, the co-occurrence pattern must hold true for all samples.
 
@@ -315,8 +315,8 @@ Let's look at the following example to illustrate the functionality of `--global
 
 | OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
-| Seq 1 | 0 | 500 | 400 | 200 | 100 |
-| Seq 2 | 100 | 200 | 200 | 0 | 2 |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
 
 When specifying `--global-ratio 1`, the co-occurrence pattern must hold true for all samples.
 
@@ -358,6 +358,74 @@ tombRaider --occurrence-type abundance --local-ratio 0.75 ...
 `Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 3 out of 4 samples with a positive detection of either the child or parent (= 75%).
 
 #### 5.2.6 --sort
+
+For *tombRaider* to identify artefact sequences in metabarcoding data, the count table is sorted and all lower-rank sequences are compared to higher-rank sequences to determine if the lower-rank sequence is an artefact of the higher-rank sequence. *tombRaider* supports 3 ways to sort the count table using the `--sort` parameter, including `'total read count'`, `'average read count'`, and `'detections'`. Please find an example below of each of the three sorting methods.
+
+##### 5.2.6.1 --sort 'total read count'
+
+To sort the count table on total read count, reads from all samples for each sequence are summed and sorted in decreasing order. For example, the following input count table:
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+| Seq 3 | 100 | 10 | 500 | 0 | 20 |
+| Seq 4 | 500 | 600 | 200 | 0 | 0 |
+
+Will be transformed to:
+
+ OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 4 | 500 | 600 | 200 | 0 | 0 |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 3 | 100 | 10 | 500 | 0 | 20 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+Since, the total read count for `Seq 4` is 1,300, `Seq 1` is 700, `Seq 3` is 630, and `Seq 2` is 302.
+
+##### 5.2.6.2 --sort 'average read count'
+
+To sort the count table on average read count, reads from all samples for each sequence are summed and divided by the number of samples with a positive detection. Finally, they are sorted in decreasing order. For example, the following input count table:
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+| Seq 3 | 100 | 10 | 500 | 0 | 20 |
+| Seq 4 | 500 | 600 | 200 | 0 | 0 |
+
+Will be transformed to:
+
+ OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 4 | 500 | 600 | 200 | 0 | 0 |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 3 | 100 | 10 | 500 | 0 | 20 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+Since, the average read count for `Seq 4` is 433.33, `Seq 1` is 233.33, `Seq 3` is 157.5, and `Seq 2` is 100.67.
+
+##### 5.2.6.3 --sort 'detections'
+
+To sort the count table on detections, sequences are sorted by the number of samples with a positive detection. For example, the following input count table:
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+| Seq 3 | 100 | 10 | 500 | 0 | 20 |
+| Seq 4 | 500 | 600 | 200 | 0 | 0 |
+
+Will be transformed to:
+
+ OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 3 | 100 | 10 | 500 | 0 | 20 |
+| Seq 4 | 500 | 600 | 200 | 0 | 0 |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+Since, the average read count for `Seq 3`, `Seq 4`, `Seq 1`, and `Seq 2`. The order of `Seq 4`, `Seq 1`, and `Seq 2` is determined on total read count.
 
 ### 5.3 Options
 

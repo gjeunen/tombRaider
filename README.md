@@ -241,9 +241,17 @@ tombRaider --occurrence-type abundance --detection-threshold 2 ...
 
 #### 5.2.3 --similarity
 
-The `--similarity` parameter specifies the sequence similarity threshold required between the child and parent sequence. The default for this parameter is set at 90, indicating the child needs to be at least 90% similar to the parent. The sequence similarity between parent and child is calculated from a global pairwise sequence alignment. The alignment algorithm implemented in *tombRaider* is the Needleman-Wunsch algorithm [Needleman & Wunsch, 1970](https://www.sciencedirect.com/science/article/pii/0022283670900574?via%3Dihub). The algorithm is natively coded in Python3 through dynamic programming for increased accurracy and speed, while also limiting the required number of dependencies for *tombRaider*. Once the global pairwise alignment has been generated, the sequence similarity is calculated by the following equation: 100 - (# of differences / alignment length * 100)
+The `--similarity` parameter specifies the sequence similarity threshold required between the child and parent sequence. The default for this parameter is set at 90, indicating the child needs to be at least 90% similar to the parent. The sequence similarity between parent and child is calculated from a global pairwise sequence alignment. The alignment algorithm implemented in *tombRaider* is the Needleman-Wunsch algorithm ([Needleman & Wunsch, 1970](https://www.sciencedirect.com/science/article/pii/0022283670900574?via%3Dihub)). The algorithm is natively coded in Python3 through dynamic programming for increased accurracy and speed, while also limiting the required number of dependencies for *tombRaider*. Once the global pairwise alignment has been generated, the sequence similarity is calculated by the following equation: 100 - (# of differences / alignment length * 100)
 
 #### 5.2.4 --negative
+
+If users wish to do so, negative controls can be omitted from the co-occurrence pattern analysis by specifying the sample names using the `--negative` parameter. Multiple sample names can be provided by using the `+` delimiter. Negative samples can also be identified through pattern searches by adding `*` before and/or after the substring. For example, `NEG*` will remove all sample names starting with `NEG`, while `*NEG` will remove all sample names ending with `NEG`, and `*NEG*` will remove all sample names containing `NEG`. Multiple pattern searches can be combined as follows:
+
+```{code-block} bash
+tombRaider --negative 'ctrBlank+*NEG+Blk*+*Ext*' ...
+```
+
+The argument passed to `--negative` in the example above will remove the sample `ctrBlank`, as well as all samples ending in `NEG`, all samples starting with `Blk`, and all samples containing `Ext` from the co-occurrence pattern analysis. Please note that the specified samples will not be removed in the final count table written to the output file using the `--frequency-output` parameter!
 
 #### 5.2.5 count, --global-ratio, --local-ratio
 

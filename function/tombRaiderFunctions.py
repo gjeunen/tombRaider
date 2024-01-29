@@ -152,9 +152,9 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accessio
                 taxEvalInputDict[seqName].append(evalNumber)
     for item in frequencyTable.index.tolist():
         if item not in taxIdInputDict:
-            taxIdInputDict[item] = ''
-            taxPidentInputDict[item] = ''
-            rawTaxDict[item] = ''
+            taxIdInputDict[item].append('not assigned')
+            taxPidentInputDict[item].append(0.0)
+            rawTaxDict[item].append('not assigned')
     return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
 def boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console):
@@ -180,11 +180,31 @@ def boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress
                 rawTaxDict[seqName].append(line)
         for item in frequencyTable.index.tolist():
             if item not in taxIdInputDict:
-                taxIdInputDict[item] = ''
-                taxPidentInputDict[item] = ''
-                rawTaxDict[item] = ''
+                taxIdInputDict[item].append('not assigned')
+                taxPidentInputDict[item].append(0.0)
+                rawTaxDict[item].append('not assigned')
     elif bold_format_ == 'complete':
-        print('complete')
+        with open(taxonomyInputFile, 'r') as taxFile:
+            next(taxFile)
+            for line in taxFile:
+                progress_bar.update(pbar, advance = len(line))
+                if line.split('\t')[0] != '':
+                    seqName = line.split('\t')[0]
+                try:
+                    taxPident = float(line.split('\t')[8])
+                    taxID = ','.join(line.split('\t')[1:8])
+                except ValueError:
+                    taxPident = 0.0
+                    taxID = 'not assigned'
+                rawTaxDict[seqName].append(line)
+                if all(taxPident >= item for item in taxPidentInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
+                    taxIdInputDict[seqName].append(taxID)
+                    taxPidentInputDict[seqName].append(taxPident)
+        for item in frequencyTable.index.tolist():
+            if item not in taxIdInputDict:
+                taxIdInputDict[item].append('not assigned')
+                taxPidentInputDict[item].append(0.0)
+                rawTaxDict[item].append('not assigned')
     else:
         console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]'{bold_format_}' not identified, aborting analysis...[/]\n")
         exit()
@@ -213,9 +233,9 @@ def sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, p
             rawTaxDict[seqName].append(line)
     for item in frequencyTable.index.tolist():
         if item not in taxIdInputDict:
-            taxIdInputDict[item] = ''
-            taxPidentInputDict[item] = ''
-            rawTaxDict[item] = ''
+            taxIdInputDict[item].append('not assigned')
+            taxPidentInputDict[item].append(0.0)
+            rawTaxDict[item].append('not assigned')
     return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
 def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console):

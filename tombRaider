@@ -345,7 +345,9 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
             console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
     
     # write log output files
+    fileType = 0
     for logFile in [detailed_log_, condensed_log_]:
+        fileType += 1
         try:
             with open(logFile, 'w') as LogFile:
                 LogFile.write('#################\n#### SUMMARY ####\n#################\n\n')
@@ -368,10 +370,10 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
                 LogFile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
                 for item in combinedDict:
                     LogFile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
-                if LogFile == detailed_log_:
+                if fileType == 1:
                     LogFileDict = logDict
                     LogFileString = 'DETAILED'
-                elif LogFile == condensed_log_:
+                elif fileType == 2:
                     LogFileDict = condensedLogDict
                     LogFileString = 'CONDENSED'
                 LogFile.write(f'\n###########################\n#### {LogFileString} ANALYSIS ####\n###########################\n\n')

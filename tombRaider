@@ -140,8 +140,19 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
 
     # check if example-run needs to be executed
     if example_run_:
-        print(os.path.realpath('tombRaider'))
-        exit()
+        currentDirectory = os.path.dirname(os.path.abspath(__file__))
+        method = 'taxon-dependent co-occurrence'
+        frequency_input_ = f'{currentDirectory}/exampleFiles/zotutabweb.txt'
+        blast_input_ = f'{currentDirectory}/exampleFiles/blastTaxonomy.txt'
+        sequence_input_ = f'{currentDirectory}/exampleFiles/zotus.fasta'
+        occurrence_type_ = 'abundance'
+        count = 0
+        sort_ = 'total read count'
+
+
+        # print(os.path.abspath('tombRaider/exampleFiles'))
+        # print(os.path.dirname(os.path.abspath(__file__)))
+        # exit()
 
     # check --method option is valid and pass parameters to the function file
     if method == 'taxon-dependent co-occurrence':

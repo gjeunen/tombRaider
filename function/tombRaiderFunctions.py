@@ -103,6 +103,7 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accessio
                         'length': None,
                         'gapopen': None,
                         'mismatch': None,
+                        'staxid': None,
         }
     else:
         neededBlastInfo = {'qaccver': None,
@@ -113,6 +114,7 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accessio
                         'length': None,
                         'gapopen': None,
                         'mismatch': None,
+                        'staxid': None,
         }
     blastFormattingList = blast_format_.split(' ')
     if blastFormattingList[0] != '6':

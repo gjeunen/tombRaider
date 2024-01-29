@@ -278,7 +278,11 @@ tombRaider --occurrence-type abundance --negative 'NEG*' ...
 | --- | --- | --- | --- | --- | --- | --- |
 | Seq 1 | 150 | 700 | 600 | 200 | 102 | 5 |
 
-#### 5.2.5 count, --global-ratio, --local-ratio
+#### 5.2.5 --count, --global-ratio, --local-ratio
+
+For *tombRaider* to identify artefacts in metabarcoding data sets, the co-occurrence pattern between child and parent must hold true for all samples with `--method 'taxon-dependent co-occurrence'` and `--method 'taxon-independent co-occurrence'`, whereby a child sequence can only be observed when a parent is present (`--occurrence-type 'presence-absence'`) or a child sequence needs to have assigned fewer reads than the parent (`--occurrence-type abundance`).
+
+Users, however, can specify the frequency for which the co-occurrence pattern does not have to hold true, while still identifying a parent-child combo. Users can specify this frequency using 1 of three parameters.
 
 #### 5.2.6 --sort
 

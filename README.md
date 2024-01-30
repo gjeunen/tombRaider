@@ -169,7 +169,7 @@ The SINTAX algorithm predicts the taxonomy of marker gene reads based on k-mer s
 
 #### 4.3.4 IDTAXA
 
-TBA
+The IDTAXA algorithm is implemented in the [DECIPHER R package](http://www2.decipher.codes/index.html), developed by Erik Wright, and published in [Murali et al., 2018](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-018-0521-5). The IDTAXA algorithm employs a 2-step machine learning approach for taxonomy classification. Use the guide on the [DECIPHER website](http://www2.decipher.codes/Documentation/Documentation-ClassifySequences.html) to generate the output file. No additional changes should be made prior to importing the file into *tombRaider*! The IDTAXA file can be imported into *tombRaider* using the `--idtaxa-input` parameter. To write the updated lsit with artefacts removed, use the `--idtaxa-output` parameter.
 
 ### 4.4 Log files
 

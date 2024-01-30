@@ -238,6 +238,29 @@ def sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, p
             rawTaxDict[item].append('not assigned')
     return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
 
+def idtaxaToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar):
+    '''
+    Function parsing the IDTAXA taxonomy file
+    '''
+    taxIdInputDict = collections.defaultdict(list)
+    taxPidentInputDict = collections.defaultdict(list)
+    rawTaxDict = collections.defaultdict(list)
+    with open(taxonomyInputFile, 'r') as taxFile:
+        for line in taxFile:
+            progress_bar.update(pbar, advance=len(line))
+            seqName = line.split('\t')[0]
+            taxID = line.split('\t')[1].split('; ')[-1].split(' (')[0]
+            taxPident = float(line.split('\t')[1].split('; ')[-1].split(' (')[1].split('%)')[0])
+            taxIdInputDict[seqName].append(taxID)
+            taxPidentInputDict[seqName].append(taxPident)
+            rawTaxDict[seqName].append(line)
+    for item in frequencyTable.index.tolist():
+        if item not in taxIdInputDict:
+            taxIdInputDict[item].append('not assigned')
+            taxPidentInputDict[item].append(0.0)
+            rawTaxDict[item].append('not assigned')
+    return taxIdInputDict, taxPidentInputDict, rawTaxDict, pbar, progress_bar
+
 def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console):
     '''
     '''
@@ -248,7 +271,7 @@ def taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_
     elif taxonomyFileType == 'bold':
         taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress_bar, console)
     elif taxonomyFileType == 'idtaxa':
-        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = sintaxToMemory(taxonomyInputFile, frequencyTable, sintax_threshold_, pbar, progress_bar)
+        taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = idtaxaToMemory(taxonomyInputFile, frequencyTable, pbar, progress_bar)
     else:
         console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
         exit()

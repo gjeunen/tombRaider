@@ -189,7 +189,7 @@ def boldToMemory(taxonomyInputFile, frequencyTable, bold_format_, pbar, progress
             for line in taxFile:
                 progress_bar.update(pbar, advance = len(line))
                 if line.split('\t')[0] != '':
-                    seqName = line.split('\t')[0]
+                    seqName = line.split('\t')[0].lstrip('>')
                 try:
                     taxPident = float(line.split('\t')[8])
                     taxID = ','.join(line.split('\t')[1:8])

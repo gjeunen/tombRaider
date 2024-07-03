@@ -1,5 +1,14 @@
 # *tombRaider* - an algorithm to identify artefacts from metabarcoding data
 
+## 0. To-Do list
+
+Below is a list of items and functions that will be added to *tombRaider* in the near-future:
+
+1. Provide users the option to merge or remove the artefacts. Currently, *tombRaider* automatically merges artefacts with "real" biological sequences.
+2. Allow for an optional input document that contains an alignment of the sequences. If this is provided, *tombRaider* will parse this and use the similarity score from this document. This should speed up the code significantly, as the alignment does not need to be created by *tombRaider*.
+3. Use file recognition for the different taxonomy formats, thereby reducing potential mishaps with users specifying the wrong document format, as well as shortening the help information.
+4. Add functionality to search for stop codons in protein-coding genes. Users will need to specify the ORF within the amplicon, so that *tombRaider* nows how to interpret the results. Probably only useful for COI?
+
 ## 1. Introduction
 
 Thank you for using *tombRaider*, an algorithm capable of identifying and removing artefact sequences from metabarcoding data sets.

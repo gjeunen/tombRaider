@@ -146,7 +146,7 @@ def blastToMemory(taxonomyInputFile, frequencyTable, blast_format_, use_accessio
                 taxID = line.split('\t')[neededBlastInfo['staxid']]
             evalNumber = float(line.split('\t')[neededBlastInfo['evalue']])
             rawTaxDict[seqName].append(line)
-            if all(evalNumber <= item for item in taxEvalInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
+            if all(taxPident >= item for item in taxPidentInputDict[seqName]) and taxID not in taxIdInputDict[seqName]:
                 taxIdInputDict[seqName].append(taxID)
                 taxPidentInputDict[seqName].append(taxPident)
                 taxEvalInputDict[seqName].append(evalNumber)

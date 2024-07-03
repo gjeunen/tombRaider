@@ -177,7 +177,10 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
         if method == 'taxon-dependent co-occurrence':
             inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile]
         elif method == 'taxon-independent co-occurrence':
-            inputFilePaths = [frequency_input_, sequence_input_]
+            if taxonomyFileType == None:
+                inputFilePaths = [frequency_input_, sequence_input_]
+            else:
+                inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile]
         elif method == 'taxon-dependent merging':
             inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile]
         else:
@@ -317,11 +320,6 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
         console.print(f"[cyan]|             WARNING[/] | [bold yellow]--sequence-output not specified, not writing updated seq list to file...[/]")
     
     # write updated taxonomy file to output
-    # first need to read in taxonomy file if method == 'taxon-independent co-occurrence'
-    if method == 'taxon-independent co-occurrence':
-        taxonomyInputFile, taxonomyFileType = checkTaxonomyFiles(blast_input_, bold_input_, sintax_input_, idtaxa_input_)
-        if taxonomyFileType != None:
-            taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, seqInputDict, pbar, progress_bar, console)
     try:
         taxonomyOutputFile, taxonomyOutputFileType = checkTaxonomyFiles(blast_output_, bold_output_, sintax_output_, idtaxa_output_)
         with open(taxonomyOutputFile, 'w') as taxoutfile:

@@ -8,6 +8,7 @@ Below is a list of items and functions that will be added to *tombRaider* in the
 2. Allow for an optional input document that contains an alignment of the sequences. If this is provided, *tombRaider* will parse this and use the similarity score from this document. This should speed up the code significantly, as the alignment does not need to be created by *tombRaider*.
 3. Use file recognition for the different taxonomy formats, thereby reducing potential mishaps with users specifying the wrong document format, as well as shortening the help information.
 4. Add functionality to search for stop codons in protein-coding genes. Users will need to specify the ORF within the amplicon, so that *tombRaider* nows how to interpret the results. Probably only useful for COI?
+5. Allow for a "no sorting" option and keep the original sorting of the OTUs/ASVs.
 
 ## 1. Introduction
 

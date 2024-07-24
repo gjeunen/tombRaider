@@ -8,7 +8,16 @@ Below is a list of items and functions that will be added to *tombRaider* in the
 2. Allow for an optional input document that contains an alignment of the sequences. If this is provided, *tombRaider* will parse this and use the similarity score from this document. This should speed up the code significantly, as the alignment does not need to be created by *tombRaider*.
 3. Use file recognition for the different taxonomy formats, thereby reducing potential mishaps with users specifying the wrong document format, as well as shortening the help information.
 4. Add functionality to search for stop codons in protein-coding genes. Users will need to specify the ORF within the amplicon, so that *tombRaider* nows how to interpret the results. Probably only useful for COI?
-5. Allow for a "no sorting" option and keep the original sorting of the OTUs/ASVs.
+
+## 1. Recent features
+
+Below is a list of items and functions that recently have been added to *tombRaider*:
+
+1. version *v 0.1.1*:
+   1. Enable no `sort` parameter input, which will keep the original order of the count table. Previously, `sort` had to be specified and only the following options were available:
+      1. `--sort "total read count"`: sort OTUs/ASVs based on total number of reads across all samples
+      2. `--sort "average read count"`: sort OTUs/ASVs based on average number of reads across all samples
+      3. `--sort "detections"`: sort OTUs/ASVs based on number of times observed in the count table
 
 ## 1. Introduction
 

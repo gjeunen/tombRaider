@@ -52,11 +52,12 @@ def freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, 
     sortOptions = {
         'total read count': frequencyTable.sum(axis = 1),
         'average read count': frequencyTable.mean(axis = 1),
-        'detections': (frequencyTable > 0).sum(axis = 1),
+        'detections': (frequencyTable > 0).sum(axis = 1)
     }
     if sort_ in sortOptions:
-        #freqTotalCountSortedDict = sortOptions[sort_].sort_values(ascending = False).to_dict()
         frequencyTable = frequencyTable.loc[sortOptions[sort_].sort_values(ascending = False).index]
+    elif sort_ == None:
+        sort_ = 'None'
     else:
         console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]option for '--sort' not identified, aborting analysis...[/]\n")
         exit()

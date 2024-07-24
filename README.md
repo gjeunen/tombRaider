@@ -13,7 +13,7 @@ Below is a list of items and functions that will be added to *tombRaider* in the
 
 Below is a list of items and functions that recently have been added to *tombRaider*:
 
-1. version *v 0.1.1*:
+1. *tombRaider v 0.1.1*:
    1. Enable no `sort` parameter input, which will keep the original order of the count table. Previously, `sort` had to be specified and only the following options were available:
       1. `--sort "total read count"`: sort OTUs/ASVs based on total number of reads across all samples
       2. `--sort "average read count"`: sort OTUs/ASVs based on average number of reads across all samples

@@ -1,24 +1,5 @@
 # *tombRaider* - an algorithm to identify artefacts from metabarcoding data
 
-## 0. To-Do list
-
-Below is a list of items and functions that will be added to *tombRaider* in the near-future:
-
-1. Provide users the option to merge or remove the artefacts. Currently, *tombRaider* automatically merges artefacts with "real" biological sequences.
-2. Allow for an optional input document that contains an alignment of the sequences. If this is provided, *tombRaider* will parse this and use the similarity score from this document. This should speed up the code significantly, as the alignment does not need to be created by *tombRaider*.
-3. Use file recognition for the different taxonomy formats, thereby reducing potential mishaps with users specifying the wrong document format, as well as shortening the help information.
-4. Add functionality to search for stop codons in protein-coding genes. Users will need to specify the ORF within the amplicon, so that *tombRaider* nows how to interpret the results. Probably only useful for COI?
-
-## 1. Recent features
-
-Below is a list of items and functions that recently have been added to *tombRaider*:
-
-1. *tombRaider v 0.1.1*:
-   1. Enable no `sort` parameter input, which will keep the original order of the count table. Previously, `sort` had to be specified and only the following options were available:
-      1. `--sort "total read count"`: sort OTUs/ASVs based on total number of reads across all samples
-      2. `--sort "average read count"`: sort OTUs/ASVs based on average number of reads across all samples
-      3. `--sort "detections"`: sort OTUs/ASVs based on number of times observed in the count table
-
 ## 1. Introduction
 
 Thank you for using *tombRaider*, an algorithm capable of identifying and removing artefact sequences from metabarcoding data sets.
@@ -26,6 +7,8 @@ Thank you for using *tombRaider*, an algorithm capable of identifying and removi
 ## 2. Installation
 
 *tombRaider* is a command-line only toolkit running on typical Unix/Linux environments and is exclusively written in Python3. *tombRaider* can be installed manually from GitHub. Below are details for the manual installation process ([2.1 Manual installation](#21-manual-installation)). Due to the native implementation of the incorporated functions, only a limited number of dependencies restricted to non-built-in Python3 modules are required for *tombRaider* to successfully execute. A complete list of the dependencies can be found below (please see [2.2 Dependencies](#22-dependencies)). Remember to install the dependencies separately, since the GitHub installation of *tombRaider* will not install the dependencies for you!
+
+Besides this Python3 version, *tombRaider* is also available as an R package. Please find the installation instructions and further information on the functionality of the R package on the GitHub repository: <https://github.com/gjeunen/tombRaider_R>.
 
 ### 2.1 Manual installation
 
@@ -72,7 +55,7 @@ tombRaider --example-run
 The code above equates to running the following line of code:
 
 ```{code-block} bash
-tombRaider --method 'taxon-dependent co-occurrence' --frequency-input 'zotutabweb.txt' --blast-input 'blastTaxonomy.txt' --sequence-input 'zotus.fasta' --occurrence-type abundance --count 0 --sort 'total read count'
+tombRaider --criteria 'taxId;seqSim;coOccur' --frequency-input 'zotutabweb.txt' --taxonomy-input 'blastTaxonomy.txt' --sequence-input 'zotus.fasta' --occurrence-type abundance --occurrence-ratio 'count;0' --sort 'total read count' --blast-format '6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen' --taxon-quality --similarity 90
 ```
 
 *tombRaider* will figure out the absolute path of the necessary files based on where *tombRaider* is installed on your OS to run this command. The output of the command should be as follows:
@@ -86,7 +69,7 @@ With *tombRaider* only a single line of code is required to identify and remove 
 To run *tombRaider* with default values, use the following line of code:
 
 ```{code-block} bash
-tombRaider --method 'taxon-dependent co-occurrence' --frequency-input countTable.txt --sequence-input sequences.fasta --blast-input blastnResults.txt --frequency-output countTableNew.txt --sequence-output sequencesNew.fasta --blast-output blastnResultsNew.txt --condensed-log condensedLog.txt --detailed-log detailedLog.txt --count 0 --sort 'total read count'
+tombRaider --criteria 'taxId;seqSim;coOccur' --frequency-input countTable.txt --sequence-input sequences.fasta --taxonomy-input blastnResults.txt --blast-format '6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen' --frequency-output countTableNew.txt --sequence-output sequencesNew.fasta --taxonomy-output blastnResultsNew.txt --log log.txt --occurrence-type abundance --occurrence-ratio 'count;0' --sort 'total read count' --similarity 90
 ```
 
 Detailed information about all input file structures ([4. Input and output files](#4-input-and-output-files)) and parameters ([5. Parameters](#5-parameters)) can be found below.
@@ -97,17 +80,17 @@ An example of all input files can be found in the `exampleFiles` subdirectory on
 
 ### 4.1 Count table
 
-The count table, also known as frequency table, OTU table, or ASV table, should be a tab-delimited file whereby the taxa are represented in rows and samples in columns. The first row of the file is treated as the column headers (sample list), while the first column is treated as row names (sequence or OTU names). The count table can be read in through the `--frequency-input` parameter and is required for *tombRaider* to successfully execute. If your count table is oriented in the opposite orientation, i.e., samples as rows and taxa as columns, the `--taxa-are-rows` parameter should be set to `'False'`. If your count table is oriented in the correct direction, you can omit the `--taxa-are-rows` parameter, as it will default to `'True'`.
+The count table, also known as frequency table, OTU table, or ASV table, should be a tab-delimited file whereby the taxa are represented in rows and samples in columns. The first row of the file is treated as the column headers (sample list), while the first column is treated as row names (sequence or OTU names). The count table can be read in through the `--frequency-input` parameter and is required for *tombRaider* to successfully execute. If your count table is oriented in the opposite orientation, i.e., samples as rows and taxa as columns, the `--transpose` parameter should be specified. If your count table is oriented in the correct direction, you can omit the `--transpose` parameter.
 
 For *tombRaider* to execute successfully, the count table should not contain any metadata rows or columns. Frequently-occurring metadata columns in a count table could, for instance, be the taxonomic ID for a sequence or the actual sequence of the OTU. If any metadata columns or rows are present in your count table, you can provide the column header(s) and/or row name(s) using the `--omit-columns` and `--omit-rows` parameters, respectively. Multiple labels can be provided to the parameters using the `,` delimiter. Do not use spaces after the `,` delimiter!
 
-Please note that columns and headers will be removed prior to transposing the table when `--taxa-are-rows` is set to `'False'`. So, if your count table is oriented whereby the taxa are columns and one of the rows contains the taxonomic ID with label "taxID" and another row contains the sequence with label "sequence", use the following line of code:
+Please note that columns and headers will be removed prior to transposing the table when `--transpose` is specified. So, if your count table is oriented whereby the taxa are columns and one of the rows contains the taxonomic ID with label "taxID" and another row contains the sequence with label "sequence", use the following line of code:
 
 ```{code-block} bash
-tombRaider --frequency-input countTable.txt --taxa-are-rows False --omit-rows 'taxID,sequence' ...
+tombRaider --frequency-input countTable.txt --transpose --omit-rows 'taxID,sequence' ...
 ```
 
-An updated count table, whereby child sequences are merged with parent sequences, can be written to an output file using the `--frequency-output` parameter. If the `--frequency-output` parameter is not provided, the following warning message will be printed in bold yellow in the Terminal window by *tombRaider*:
+An updated count table, whereby artefacts are removed, can be written to an output file using the `--frequency-output` parameter. If the `--frequency-output` parameter is not provided, the following warning message will be printed in bold yellow in the Terminal window by *tombRaider*:
 
 ```{note}
 WARNING | --frequency-output not specified, not writing updated table to file...
@@ -123,15 +106,21 @@ WARNING | --sequence-output not specified, not writing updated seq list to file.
 
 ### 4.3 Taxonomy assignment
 
-*tombRaider* currently supports 4 taxonomy classification methods for optimal flexibility of a user's bioinformatic pipeline, including BLAST, BOLD, SINTAX, and IDTAXA. The taxonomy input file is essential when specifying the `taxon-dependent co-occurrence` and `taxon-dependent merging` options for the `--method` parameter (please find more info in [5.1 Main algorithm](#51-main-algorithm)). When specifying `--method taxon-independent co-occurrence`, no taxonomy input file is needed for *tombRaider* to execute. However, a taxonomy input and output file can still be provided in this case, which will subset the taxonomy file and remove the artefacts in the specified output file. This functionality is included to ensure all documents are updated and allow for easy import in other software packages without errors, such as [phyloseq](https://joey711.github.io/phyloseq/).
+*tombRaider* currently supports 4 taxonomy classification methods for optimal flexibility of a user's bioinformatic pipeline, including BLAST, BOLD, SINTAX, and IDTAXA. The taxonomy input file is essential when specifying `--criteria 'taxID'` (please find more info about this parameter in section [5.1 Main algorithm](#51-general-information)). When this criterium is not selected, no taxonomy input file is needed for *tombRaider* to execute. However, a taxonomy input and output file can still be provided in this case, which will subset the taxonomy file and remove the artefacts in the specified output file. This functionality is included to ensure all documents are updated and allow for easy import in other software packages without errors, such as [phyloseq](https://joey711.github.io/phyloseq/).
 
-Please find below more detailed information about each of the 4 taxonomy classification format requirements for *tombRaider*.
+The taxonomy file can be read in using the `--taxonomy-input` parameter. An updated taxonomy file, whereby artefacts are removed, can be written to an output file using the `--taxonomy-output` parameter. If the `--taxonomy-output` parameter is not provided, the following warning message will be printed in bold yellow in the Terminal window by *tombRaider*:
+
+```{note}
+WARNING | --taxonomy-output not specified, not writing updated taxonomy to file...
+```
+
+*tombRaider* automatically identifies the format of the document and assigns it to one of the 4 supported taxonomy classification methods. Please find below more detailed information about each of the 4 taxonomy classification format requirements for *tombRaider*.
 
 If you have any other taxonomy classification method you would like to see incorporated into *tombRaider*, please let us know and we'll include it in the next major update.
 
 #### 4.3.1 BLAST
 
-BLAST is the most commonly-used method for taxonomy assignment in eukaryote metabarcoding research and can be conducted online or via the command-line interface. *tombRaider* can read in BLAST results using the `--blast-input` parameter and output the updated BLAST results, with artefacts removed, using the `--blast-output` parameter. Currently, *tombRaider* only supports the tabular output format 6. This format can be retrieved from your BLAST search through the website by selecting the "Hit Table(text)" option for downloading. Please see the screenshot below for additional info.
+BLAST is the most commonly-used method for taxonomy assignment in eukaryote metabarcoding research and can be conducted online or via the command-line interface. Currently, *tombRaider* only supports the tabular output format 6. This format can be retrieved from your BLAST search through the website by selecting the "Hit Table(text)" option for downloading. Please see the screenshot below for additional info.
 
 ![blastn website download](figures/blastn-download.png)
 
@@ -152,7 +141,7 @@ The *tombRaider* algorithm requires the following fields to be present in the BL
 - gapopen: number of gap openings
 - mismatch: number of mismatches
 
-Use the `--blast-format` parameter to tell *tombRaider* where these fields are located within your BLAST file. The `--blast-format` parameter takes in the string provided to `blastn -outfmt` when you executed BLAST via the CLI. When downloading BLAST results from the website, this metadata is provided in the first few lines of the downloaded document (line starting with `#`). When running blastn via the CLI, we recommend using the following line of code to enable the default option for `--blast-format`:
+Use the `--blast-format` parameter to tell *tombRaider* where these fields are located within your BLAST file. The `--blast-format` parameter takes in the string provided to `blastn -outfmt` when you executed BLAST via the CLI. When downloading BLAST results from the website, this metadata is provided in the first few lines of the downloaded document (line starting with `#`). When running blastn via the CLI, we recommend using the following line of code:
 
 ```{code-block} bash
 blastn -query sequences.fasta -outfmt '6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen' -max_target_seqs 100 -perc_identity 50 -qcov_hsp_perc 50 -out blastTaxonomy.txt
@@ -163,14 +152,14 @@ blastn -query sequences.fasta -outfmt '6 qaccver saccver ssciname staxid length 
 When the genetic marker holds information on intra-specific variation (haplotypes) and the aim of the study is to investigate this intra-specific variation within various species, the taxonomic ID used by *tombRaider* should be set to the subject accession version ('saccver'). To accomplish this, provide the `--use-accession-id` parameter. No arguments are necessary for this parameter. Please find an example line of code below:
 
 ```{code-block} bash
-tombRaider --method 'taxon-dependent co-occurrence' --frequency-input countTable.txt --sequence-input sequences.fasta --blast-input blastnResults.txt --frequency-output countTableNew.txt --sequence-output sequencesNew.fasta --blast-output blastnResultsNew.txt --condensed-log condensedLog.txt --detailed-log detailedLog.txt --count 0 --sort 'total read count' --use-accession-id
+tombRaider --criteria 'taxId;seqSim;coOccur' --frequency-input countTable.txt --sequence-input sequences.fasta --taxonomy-input blastnResults.txt --blast-format '6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen' --frequency-output countTableNew.txt --sequence-output sequencesNew.fasta --taxonomy-output blastnResultsNew.txt --log log.txt --occurrence-type abundance --occurrence-ratio 'count;0' --sort 'total read count' --similarity 90 --use-accession-id
 ```
 
 Please note that this option to investigate intra-specific variation is only available for BLAST!
 
 #### 4.3.2 BOLD
 
-The BOLD IDentification Engine can be used to match query sequences to the [BOLD reference database](https://boldsystems.org) and is frequently used in metabarcoding research when the primers amplify the COI gene for animals, ITS gene for fungi, and RBCL & MATK genes for plants. *tombRaider* can read in BOLD IDE results using the `--bold-input` parameter and output the updated BOLD IDE results, with artefacts removed, using the `--bold-output` parameter. *tombRaider* currently supports two output formats from the BOLD IDE, including the summary results and the complete report. The format can be specified using the `--bold-format` parameter.
+The BOLD IDentification Engine can be used to match query sequences to the [BOLD reference database](https://boldsystems.org) and is frequently used in metabarcoding research when the primers amplify the COI gene for animals, ITS gene for fungi, and RBCL & MATK genes for plants. *tombRaider* currently supports two output formats from the BOLD IDE, including the summary results and the complete report. The format can be specified using the `--bold-format` parameter.
 
 ##### 4.3.2.1 --bold-format summary
 
@@ -184,59 +173,112 @@ The complete BOLD IDE report can be obtained through [BOLDIGGER](https://github.
 
 #### 4.3.3 SINTAX
 
-The SINTAX algorithm predicts the taxonomy of marker gene reads based on k-mer similarity and is implemented in [USEARCH](https://www.drive5.com/usearch/) and [VSEARCH](https://github.com/torognes/vsearch). When the SINTAX classification algorithm was used for taxonomy assignment during the bioinformatic pipeline, the input file can be provided using the `--sintax-input` parameter. To write the updated list with artefacts removed, use the `--sintax-output` parameter. The SINTAX reports should be in tab-delimited format, which is the default format for [USEARCH](https://www.drive5.com/usearch/) and [VSEARCH](https://github.com/torognes/vsearch). *tombRaider* defaults to using the SINTAX results without a threshold applied, i.e., the second column in the SINTAX report. Use the `--sintax-threshold` parameter without arguments for *tombRaider* to use the SINTAX results where the user-defined threshold has been applied, i.e., the fourth column in the SINTAX report.
+The SINTAX algorithm predicts the taxonomy of marker gene reads based on k-mer similarity and is implemented in [USEARCH](https://www.drive5.com/usearch/) and [VSEARCH](https://github.com/torognes/vsearch). The SINTAX reports should be in tab-delimited format, which is the default format for [USEARCH](https://www.drive5.com/usearch/) and [VSEARCH](https://github.com/torognes/vsearch). *tombRaider* defaults to using the SINTAX results without a threshold applied, i.e., the second column in the SINTAX report. Use the `--sintax-threshold` parameter without arguments for *tombRaider* to use the SINTAX results where the user-defined threshold has been applied, i.e., the fourth column in the SINTAX report.
 
 #### 4.3.4 IDTAXA
 
-The IDTAXA algorithm is implemented in the [DECIPHER R package](http://www2.decipher.codes/index.html), developed by Erik Wright, and published in [Murali et al., 2018](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-018-0521-5). The IDTAXA algorithm employs a 2-step machine learning approach for taxonomy classification. Use the guide on the [DECIPHER website](http://www2.decipher.codes/Documentation/Documentation-ClassifySequences.html) to generate the output file. No additional changes should be made prior to importing the file into *tombRaider*! The IDTAXA file can be imported into *tombRaider* using the `--idtaxa-input` parameter. To write the updated lsit with artefacts removed, use the `--idtaxa-output` parameter.
+The IDTAXA algorithm is implemented in the [DECIPHER R package](http://www2.decipher.codes/index.html), developed by Erik Wright, and published in [Murali et al., 2018](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-018-0521-5). The IDTAXA algorithm employs a 2-step machine learning approach for taxonomy classification. Use the guide on the [DECIPHER website](http://www2.decipher.codes/Documentation/Documentation-ClassifySequences.html) to generate the output file. No additional changes should be made prior to importing the file into *tombRaider*!
 
-### 4.4 Log files
+### 4.4 Multiple Sequence Alignment
 
-Besides the summary report *tombRaider* prints to the Terminal window (please see an example summary report provided by *tombRaider* when running `tombRaider --example-run`), two different log files can be written to output files by *tombRaider*, including a condensed log file (`--condensed-log`) and a detailed log file (`--detailed-log`). Information about the structure of each log file can be found in [4.4.1 condensed log file](#441-condensed-log-file) and [4.4.2 detailed log file](#442-detailed-log-file).
+A multiple sequence alignment file can be optionally read in by *tombRaider* using the `--alignment-input` parameter. Providing a multiple sequence alignment file will circumvent *tombRaider* to generate pairwise sequence alignments to investigate sequence similarity when `--criteria 'seqSim'` is specified (please find more info about this parameter in section [5.1 Main algorithm](#51-general-information)), thereby significantly increasing the speed of code execution.
+
+Please note that a multiple sequence alignment file is required when *tombRaider* needs to identify pseudogenes (`--criteria 'pseudogene`). If users specify `--criteria 'pseudogene'`, which requires a multiple sequence alignment input file, users can provide the `--calculate-pairwise` parameter for *tombRaider* to not use the multiple sequence alignment file to calculate pairwise sequence similarity, but instead use the built-in pairwise alignment algorithm.
+
+Currently, only the nexus file format is supported for the multiple sequence alignment. If you have any other file format you would like to see incorporated into *tombRaider*, please let us know and we'll include it in the next major update.
+
+### 4.5 Log file
+
+Besides the summary report *tombRaider* prints to the Terminal window (please see an example summary report provided by *tombRaider* when running `tombRaider --example-run`), a log file can be written as output by *tombRaider* using the `--log` parameter.
 
 ![tombRaider --example-run](figures/example-run.png)
 
-The summary report printed to the Terminal window provides information about the algorithm used to analyse the data on the first line, progress bars and elapsed time during file inport and the identification of artefacts in the second and third lines. Potential warning messages are written below the progress bars when output files are not specified. Below the progress bars and potential warning messages are the summary statistics, including the total number of sequences analysed by *tombRaider*, the total number of artefacts identified with the proportion between brackets, followed by a list of each parent and identified children.
+The summary report printed to the Terminal window provides information about the incorporated critera to identify artefacts on the first line, progress bars and elapsed time during file inport and the identification of artefacts in the second and third lines. Potential warning messages are written below the progress bars when output files are not specified. Below the progress bars and potential warning messages are the summary statistics, including the total number of sequences analysed by *tombRaider*, the total number of artefacts identified with the proportion between brackets, followed by a list of each parent and identified children. The log output file contains further detailed information on why a sequence was deemed an artefact and can be generated for inclusion as a supplemental file in your manuscript to enable other research groups to recreate the obtained results prior to statistical analysis.
 
-#### 4.4.1 condensed log file
+An example of the log file can be found below:
 
-The condensed log file starts with essential summary information, including the date and time the code was executed, the exact code that was run, details about the chosen parameters, and the summary results as printed in the Terminal window. Following the summary information is the condensed analysis for each sequence, providing information for which sequence there were matching taxonomic IDs, BLAST score threshold, co-occurrence pattern, sequence similarity threshold, and if a parent was identified.
-
-An example of the condensed log file can be found below:
-
-![tombRaider --condensed-log](figures/condensed-log.png)
-
-#### 4.4.2 detailed log file
-
-The detailed log file starts with essential summary information, including the date and time the code was executed, the exact code that was run, details about the chosen parameters, and the summary results as printed in the Terminal window. Following the summary information is the detailed analysis for each sequence, providing information for which sequence there were matching taxonomic IDs, BLAST score threshold, co-occurrence pattern, sequence similarity threshold, and if a parent was identified, as well as the specific values for each parameter.
-
-An example of the detailed log file can be found below:
-
-![tombRaider --detailed-log](figures/detailed-log.png)
+![tombRaider --detailed-log](figures/log-output.png)
 
 ## 5. Parameters
 
-Please find below the details about all parameters incorporated into *tombRaider*. Parameters associated with input and output files can be found in [4. Input and output files](#4-input-and-output-files).
+Please find below the details about all parameters incorporated into *tombRaider*. The order of the parameters below follows the order in which parameters occur in the help documentation in the Terminal.
 
-### 5.1 Main algorithm
+```{code-block} bash
+tombRaider -h
+```
 
-#### 5.1.1 --method
+### 5.1 General information
 
-*tombRaider* currently supports 3 algorithms to identify artefact sequences in metabarcoding data sets, including one novel approach and two widely-used methods in the metabarcoding research community. The algorithms can be specified using the `--method` parameter. The following three options are currently supported:
+#### 5.1.1 --criteria
 
-1. `--method 'taxon-dependent co-occurrence'`: This novel approach is the default setting in *tombRaider* and allows for the most accurate species and haplotype recovery from metabarcoding data sets. Artefacts are identified based on taxonomic classification, sequence similarity, and co-occurrence patterns. For more information about the optional parameters, please see [5.2 Parameters](#52-parameters). This algorithm is currently the only automated method to recover haplotypes from metabarcoding data sets.
-2. `--method 'taxon-independent co-occurrence'`: This approach identifies artefacts based on sequence similarity and co-occurrence patterns. It was pioneered by [Froslev et al., 2017](https://github.com/tobiasgf/lulu) and has since seen alteration and optimisation in a variety of settings, e.g., [mumu](https://github.com/frederic-mahe/mumu).
-3. `--method 'taxon-dependent merging'`: This approach merges sequences based on taxonomic ID and is a widely-used approach in the metabarcoding research community.
+*tombRaider* is a modular algorithm to identify artefact sequences in metabarcoding data sets. *tombRaider* includes the support of various criteria to identify artefacts, which can be specified using the `--criteria` parameter. Criteria can be specified using a string. Multiple criteria can be combined, which provides a more effective manner of identifying artefacts in metabarcoding data sets. To specify multiple criteria, the criteria should be separated by `;` in the string. Currently, *tombRaider* supports 4 criteria to identify artefacts. Given the modular approach of the algorithm, future updates will include additional criteria based on novel findings in the scientific community. The following four criteria are currently supported:
 
-### 5.2 Parameters
+1. `--criteria 'taxID'`: This criterium assesses if taxonomic ID's are identical between both OTUs/ASVs under investigation. This criterium is the most frequently-used method to identify artefacts in the metabarcoding literature to date, and follows the approach of merging OTUs/ASVs based on the taxonomic ID sequences obtain. The `--taxon-quality` parameter can be specified to further restrict this criterium by not only investigating the taxonomic ID, but also the quality of the sequences to the reference database (please see [5.2 Parameters](#52-input-files)) for more information about the `--taxon-quality` parameter.
+2. `--criteria 'seqSim'`: This criterium assess the sequence similarity between both OTUs/ASVs under investigation. This criterium, in combination with co-occurrence patterns (`--criterium 'coOccur'`) follows the approach pioneered by [Froslev et al., 2017](https://github.com/tobiasgf/lulu) and has since seen alteration and optimisation in a variety of settings, e.g., [mumu](https://github.com/frederic-mahe/mumu). The similarity threshold that both OTUs/ASVs need to meet can be specified using the `--similarity` parameter. *tombRaider* can calculate pairwise sequence similarity using global and local alignment algorithms (parameter: `--pairwise-alignment`), as well as from a multiple sequence alignment input file (parameter: `--alignment-input`).
+3. `--criteria 'coOccur'`: This criterium assesses the co-occurrence patterns between both OTUs/ASVs under investigation. This criterium, in combination with sequence similarity (`--criterium 'seqSim'`) follows the approach of LULU. Data structure types and ratio methods/thresholds can be specified using the `--occurrence-type` and `--occurrence-ratio` parameters respectively.
+4. `--criteria 'pseudogene'`: Besides PCR artefacts, pseudogenes are another type of artefact observed in metabarcoding data when protein-coding genes are targeted for amplification. To identify pseudogenes, *tombRaider* requires a multiple sequence alignment input file (parameter: `--alignment-input`), as well as the starting position of the open reading frame (parameter: `--orf`).
 
-#### 5.2.1 --occurrence-type
+#### 5.1.2 --discard-artefacts
 
-The parameter `--occurrence-type` enables users to specify if the co-occurrence pattern between parent and child sequences should be based on read abundance (`--occurrence-type abundance`) or presence-absence (`--occurrence-type 'presence-absence'`), with the default set to `--occurrence-type abundance`.
+On default, *tombRaider* merges PCR artefacts with their original template, i.e., reads per sample are summed and only the original template is kept while the PCR artefact ID is removed. For pseudogenes, *tombRaider*'s default is to outright remove the OTU/ASV from the dataset. If users prefer to discard rather than merge PCR artefacts with their original template, the `--discard-artefacts` parameter can be specified without any additional options following the parameter.
 
-When `--occurrence-type abundance` is selected, for the co-occurrence pattern to hold true, the parent will need to achieve a higher read abundance than the child. The user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [5.2.5 count, --global-ratio, --local-ratio](#525---count---global-ratio---local-ratio)). Since artefacts originate during PCR amplification, it is expected that child sequences can only occur when the parent is detected in the sample and are less abundant than the parent. Hence, the default for `--occurrence-type` within *tombRaider* is set to `abundance`. However, this expectation that child sequences are less abundant than their parent in metabarcoding data may not always hold true, due to reduced amplification efficiency for metabarcoding primers, multiple sample handling steps after PCR amplification, and biases in Illumina sequencing technology. Therefore, *tombRaider* allows the user to specify the data should be treated as presence-absence instead. It should be noted that the frequency this expectation of the parent being more abundant than the child not holding true is not empirically tested.
+### 5.2 Input files
 
-When `--occurrence-type 'presence-absence'` is selected, for the co-occurrence pattern to hold true, the parent will need to have a positive detection when the child is present. Similarly to the `abundance` option, the user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [5.2.5 count, --global-ratio, --local-ratio](#525---count---global-ratio---local-ratio)).
+#### 5.2.1 --frequency-input
+
+The input file of the OTU/ASV table can be specified using the `--frequence-input` parameter. This input file should be a tab-delimited text file. Please see [4.1 Count table](#41-count-table) for more information.
+
+#### 5.2.2 --sequence-input
+
+The input file of the OTU/ASV sequences can be specified using the `--sequence-input` parameter. This input file should be in a 2-line or multi-line fasta format. Please see [4.2 Sequence list](#42-sequence-list) for more information.
+
+#### 5.2.3 --taxonomy-input
+
+The input file of the taxonomic identificiation can be specified using the `--taxonomy-input` parameter. This input file can be formatted in a variety of ways. Please see [4.3 Taxonomy assignment](#43-taxonomy-assignment) for more information.
+
+#### 5.2.4 --alignment-input
+
+The input file of the multiple sequence alignment can be specified using the `--alignment-input` parameter. This input file should follow the nexus format. Please see [4.4 Multiple sequence alignment](#44-multiple-sequence-alignment) for more information.
+
+### 5.3 Output files
+
+#### 5.3.1 --frequency-output
+
+The updated OTU/ASV table can be specified using the `--frequence-output` parameter. Please see [4.1 Count table](#41-count-table) for more information.
+
+#### 5.3.2 --sequence-output
+
+The updated list of OTU/ASV sequences can be specified using the `--sequence-output` parameter. Please see [4.2 Sequence list](#42-sequence-list) for more information.
+
+#### 5.3.3 --taxonomy-output
+
+The updated taxonomic identificiation file can be specified using the `--taxonomy-output` parameter. Please see [4.3 Taxonomy assignment](#43-taxonomy-assignment) for more information.
+
+#### 5.3.4 --log
+
+A detailed report of the results can be written to an output file using the `--log` parameter. Please see [4.5 Log file](#45-log-file) for more information.
+
+### 5.4 Frequency table details
+
+#### 5.4.1 --transpose
+
+The `--transpose` parameter allows for the `--frequency-input` table to be transposed, so that samples are columns and OTUs/ASVs are rows.
+
+#### 5.4.2 --omit-rows
+
+The `--omit-rows` parameter allows for the removal of metadata rows in the `--frequency-input` table.
+
+#### 5.4.3 --omit-columns
+
+The `--omit-columns` parameter allows for the removal of metadata columns in the `--frequency-input` table.
+
+#### 5.4.4 --occurrence-type
+
+The parameter `--occurrence-type` enables users to specify if the co-occurrence pattern between parent and child sequences should be based on read abundance (`--occurrence-type abundance`) or presence-absence (`--occurrence-type 'presence-absence'`).
+
+When `--occurrence-type abundance` is selected, for the co-occurrence pattern to hold true, the parent will need to achieve a higher read abundance than the child. The user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [5.4.5 --occurrence-ratio](#545---occurrence-ratio)). Since artefacts originate during PCR amplification, it is expected that child sequences can only occur when the parent is detected in the sample and are less abundant than the parent. However, this expectation that child sequences are less abundant than their parent in metabarcoding data may not always hold true, due to reduced amplification efficiency for metabarcoding primers, multiple sample handling steps after PCR amplification, and biases in Illumina sequencing technology. Therefore, *tombRaider* allows the user to specify the data should be treated as presence-absence instead. It should be noted that the frequency this expectation of the parent being more abundant than the child not holding true is not empirically tested.
+
+When `--occurrence-type 'presence-absence'` is selected, for the co-occurrence pattern to hold true, the parent will need to have a positive detection when the child is present. Similarly to the `abundance` option, the user can specify a threshold for how frequently this statement can be violated before the co-occurrence pattern does not hold true anymore (please see [5.4.5 --occurrence-ratio](#545---occurrence-ratio)).
 
 To illustrate the difference between `--occurrence-type abundance` and `--occurrence-type 'presence-absence'`, let's look at the following example where we have the read abundance for two sequences in five samples.
 
@@ -245,7 +287,7 @@ To illustrate the difference between `--occurrence-type abundance` and `--occurr
 | Seq 1 | 100 | 500 | 400 | 200 | 100 |
 | Seq 2 | 50 | 200 | 200 | 0 | 500 |
 
-In our example, `Seq 2` is being analysed as a child of `Seq 1` based on the co-occurrence pattern (please see [5.2.6 --sort](#526---sort) on why `Seq 2` is being analysed as the child, rather than `Seq 1`). With the following line of code:
+In our example, `Seq 2` is being analysed as a child of `Seq 1` based on the co-occurrence pattern (please see [5.4.8 --sort](#548---sort) on why `Seq 2` is being analysed as the child, rather than `Seq 1`). With the following line of code:
 
 ```{code-block} bash
 tombRaider --occurrence-type abundance ...
@@ -259,7 +301,86 @@ tombRaider --occurrence-type 'presence-absence' ...
 
 `Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since `Seq 2` is only present in samples when `Seq 1` is detected.
 
-#### 5.2.2 --detection-threshold
+#### 5.4.5 --occurrence-ratio
+
+For *tombRaider* to identify artefacts in metabarcoding data sets, the co-occurrence pattern between child and parent must hold true for all samples when `--criteria 'coOccur'` is specified, whereby a child sequence can only be observed when a parent is present (`--occurrence-type 'presence-absence'`) or a child sequence needs to have assigned fewer reads than the parent (`--occurrence-type abundance`).
+
+Users, however, can specify the frequency for which the co-occurrence pattern does not have to hold true, while still identifying a parent-child combo. Users can specify this frequency using 1 of three options.
+
+##### 5.4.5.1 --occurrence-ratio 'count;0'
+
+The first option users can specify the frequency for which the co-occurrence pattern has to hold true is the `--occurrence-ratio 'count;0'` option. The `count` option specifies the number of times a child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`). Let's look at the following example to illustrate the functionality of `count`. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+When specifying `--occurrence-ratio 'count;0'`, the co-occurrence pattern must hold true for all samples.
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --occurrence-ratio 'count;0' ...
+```
+
+Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `count` is set to `1`:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --occurrence-ratio 'count;1' ...
+```
+
+`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for all samples, except for the single sample `Sample 1`.
+
+##### 5.4.5.2 --occurrence-ratio 'global;1.0'
+
+The second option users can specify the frequency for which the co-occurrence pattern has to hold true is the `global` option. The `global` option specifies the ratio whereby the child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`) divided by the total number of samples in the count table.
+
+Let's look at the following example to illustrate the functionality of `global`. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+When specifying `--occurrence-ratio 'global;1.0'`, the co-occurrence pattern must hold true for all samples.
+
+```{code-block} bash
+tombRaider --occurrence-type abundance ----occurrence-ratio 'global;1.0' ...
+```
+
+Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `global` is set to `0.8`:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --occurrence-ratio 'global;0.8' ...
+```
+
+`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 4 out of 5 samples (= 80%).
+
+##### 5.4.5.3 --occurrence-ratio 'local;1.0'
+
+The third, and final, option users can specify the frequency for which the co-occurrence pattern has to hold true is the `local` option. The `local` option specifies the ratio whereby the child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`) divided by the total number of samples with a positive detection in child + parent.
+
+Let's look at the following example to illustrate the functionality of `local`. Assume the table below to be our count table input file.
+
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| --- | --- | --- | --- | --- | --- |
+| Seq 1 | 0 | 0 | 400 | 200 | 100 |
+| Seq 2 | 100 | 0 | 200 | 0 | 2 |
+
+When specifying `--occurrence-ratio 'local;1.0`, the co-occurrence pattern must hold true for all samples.
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --occurrence-ratio 'local;1.0 ...
+```
+
+Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `--local-ratio` is set to `0.75`:
+
+```{code-block} bash
+tombRaider --occurrence-type abundance --occurrence-ratio 'local;0.75 ...
+```
+
+`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 3 out of 4 samples with a positive detection of either the child or parent (= 75%).
+
+#### 5.4.6 --detection-threshold
 
 With the `--detection-threshold` parameter, users can define the minimum read abundance needed for a detection to hold true.
 
@@ -292,11 +413,7 @@ tombRaider --occurrence-type abundance --detection-threshold 2 ...
 | --- | --- | --- | --- | --- | --- |
 | Seq 1 | 1 | 700 | 600 | 200 | 102 |
 
-#### 5.2.3 --similarity
-
-The `--similarity` parameter specifies the sequence similarity threshold required between the child and parent sequence. The default for this parameter is set at 90, indicating the child needs to be at least 90% similar to the parent. The sequence similarity between parent and child is calculated from a global pairwise sequence alignment. The alignment algorithm implemented in *tombRaider* is the Needleman-Wunsch algorithm ([Needleman & Wunsch, 1970](https://www.sciencedirect.com/science/article/pii/0022283670900574?via%3Dihub)). The algorithm is natively coded in Python3 through dynamic programming for increased accurracy and speed, while also limiting the required number of dependencies for *tombRaider*. Once the global pairwise alignment has been generated, the sequence similarity is calculated by the following equation: 100 - (# of differences / alignment length * 100)
-
-#### 5.2.4 --negative
+#### 5.4.7 --negative
 
 If users wish to do so, negative controls can be omitted from the co-occurrence pattern analysis by specifying the sample names using the `--negative` parameter. Multiple sample names can be provided by using the `+` delimiter. Negative samples can also be identified through pattern searches by adding `*` before and/or after the substring. For example, `NEG*` will remove all sample names starting with `NEG`, while `*NEG` will remove all sample names ending with `NEG`, and `*NEG*` will remove all sample names containing `NEG`. Multiple pattern searches can be combined as follows:
 
@@ -331,90 +448,11 @@ tombRaider --occurrence-type abundance --negative 'NEG*' ...
 | --- | --- | --- | --- | --- | --- | --- |
 | Seq 1 | 150 | 700 | 600 | 200 | 102 | 5 |
 
-#### 5.2.5 --count, --global-ratio, --local-ratio
+#### 5.4.8 --sort
 
-For *tombRaider* to identify artefacts in metabarcoding data sets, the co-occurrence pattern between child and parent must hold true for all samples with `--method 'taxon-dependent co-occurrence'` and `--method 'taxon-independent co-occurrence'`, whereby a child sequence can only be observed when a parent is present (`--occurrence-type 'presence-absence'`) or a child sequence needs to have assigned fewer reads than the parent (`--occurrence-type abundance`).
+For *tombRaider* to identify artefact sequences in metabarcoding data, the count table is sorted and all lower-rank sequences are compared to higher-rank sequences to determine if the lower-rank sequence is an artefact of the higher-rank sequence. *tombRaider* supports 4 ways to sort the count table using the `--sort` parameter, including `'total read count'`, `'average read count'`, and `'detections'`. When leaving `--sort` out of the code, the initial order of the count table will be preserved. Please find an example below of each of the three sorting methods that alter the order of the OTU/ASV sequences in the count table.
 
-Users, however, can specify the frequency for which the co-occurrence pattern does not have to hold true, while still identifying a parent-child combo. Users can specify this frequency using 1 of three parameters.
-
-##### 5.2.5.1 --count
-
-The first parameter users can specify the frequency for which the co-occurrence pattern has to hold true is the `--count` parameter. The `--count` parameter specifies the number of times a child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`). Let's look at the following example to illustrate the functionality of `--count`. Assume the table below to be our count table input file.
-
-| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
-| --- | --- | --- | --- | --- | --- |
-| Seq 1 | 0 | 0 | 400 | 200 | 100 |
-| Seq 2 | 100 | 0 | 200 | 0 | 2 |
-
-When specifying `--count 0`, the co-occurrence pattern must hold true for all samples.
-
-```{code-block} bash
-tombRaider --occurrence-type abundance --count 0 ...
-```
-
-Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `--count` is set to `1`:
-
-```{code-block} bash
-tombRaider --occurrence-type abundance --count 1 ...
-```
-
-`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for all samples, except for the single sample `Sample 1`.
-
-##### 5.2.5.2 --global-ratio
-
-The second parameter users can specify the frequency for which the co-occurrence pattern has to hold true is the `--global-ratio` parameter. The `--global-ratio` parameter specifies the ratio whereby the child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`) divided by the total number of samples in the count table.
-
-Let's look at the following example to illustrate the functionality of `--global-ratio`. Assume the table below to be our count table input file.
-
-| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
-| --- | --- | --- | --- | --- | --- |
-| Seq 1 | 0 | 0 | 400 | 200 | 100 |
-| Seq 2 | 100 | 0 | 200 | 0 | 2 |
-
-When specifying `--global-ratio 1`, the co-occurrence pattern must hold true for all samples.
-
-```{code-block} bash
-tombRaider --occurrence-type abundance --global-ratio 1 ...
-```
-
-Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `--global-ratio` is set to `0.8`:
-
-```{code-block} bash
-tombRaider --occurrence-type abundance --global-ratio 0.8 ...
-```
-
-`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 4 out of 5 samples (= 80%).
-
-##### 5.2.5.3 --local-ratio
-
-The third, and final, parameter users can specify the frequency for which the co-occurrence pattern has to hold true is the `--local-ratio` parameter. The `--local-ratio` parameter specifies the ratio whereby the child can be observed without the presence of a parent (`--occurrence-type 'presence-absence'`) or observed to have a higher read count than a parent (`--occurrence-type abundance`) divided by the total number of samples with a positive detection in child + parent.
-
-Let's look at the following example to illustrate the functionality of `--local-ratio`. Assume the table below to be our count table input file.
-
-| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
-| --- | --- | --- | --- | --- | --- |
-| Seq 1 | 0 | 0 | 400 | 200 | 100 |
-| Seq 2 | 100 | 0 | 200 | 0 | 2 |
-
-When specifying `--local-ratio 1`, the co-occurrence pattern must hold true for all samples.
-
-```{code-block} bash
-tombRaider --occurrence-type abundance --local-ratio 1 ...
-```
-
-Therefore, `Seq 2` is rejected as a child of `Seq 1`, since `Seq 2` is observed to have 100 reads assigned to `Sample 1`, while `Seq 1` is not detected in `Sample 1`. However, when `--local-ratio` is set to `0.75`:
-
-```{code-block} bash
-tombRaider --occurrence-type abundance --local-ratio 0.75 ...
-```
-
-`Seq 2` is accepted as a child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the co-occurrence pattern holds true for 3 out of 4 samples with a positive detection of either the child or parent (= 75%).
-
-#### 5.2.6 --sort
-
-For *tombRaider* to identify artefact sequences in metabarcoding data, the count table is sorted and all lower-rank sequences are compared to higher-rank sequences to determine if the lower-rank sequence is an artefact of the higher-rank sequence. *tombRaider* supports 3 ways to sort the count table using the `--sort` parameter, including `'total read count'`, `'average read count'`, and `'detections'`. Please find an example below of each of the three sorting methods.
-
-##### 5.2.6.1 --sort 'total read count'
+##### 5.4.8.1 --sort 'total read count'
 
 To sort the count table on total read count, reads from all samples for each sequence are summed and sorted in decreasing order. For example, the following input count table:
 
@@ -427,7 +465,7 @@ To sort the count table on total read count, reads from all samples for each seq
 
 Will be transformed to:
 
- OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
 | Seq 4 | 500 | 600 | 200 | 0 | 0 |
 | Seq 1 | 0 | 0 | 400 | 200 | 100 |
@@ -436,7 +474,7 @@ Will be transformed to:
 
 Since, the total read count for `Seq 4` is 1,300, `Seq 1` is 700, `Seq 3` is 630, and `Seq 2` is 302.
 
-##### 5.2.6.2 --sort 'average read count'
+##### 5.4.8.2 --sort 'average read count'
 
 To sort the count table on average read count, reads from all samples for each sequence are summed and divided by the number of samples with a positive detection. Finally, they are sorted in decreasing order. For example, the following input count table:
 
@@ -449,7 +487,7 @@ To sort the count table on average read count, reads from all samples for each s
 
 Will be transformed to:
 
- OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
 | Seq 4 | 500 | 600 | 200 | 0 | 0 |
 | Seq 1 | 0 | 0 | 400 | 200 | 100 |
@@ -458,7 +496,7 @@ Will be transformed to:
 
 Since, the average read count for `Seq 4` is 433.33, `Seq 1` is 233.33, `Seq 3` is 157.5, and `Seq 2` is 100.67.
 
-##### 5.2.6.3 --sort 'detections'
+##### 5.4.8.3 --sort 'detections'
 
 To sort the count table on detections, sequences are sorted by the number of samples with a positive detection. For example, the following input count table:
 
@@ -471,7 +509,7 @@ To sort the count table on detections, sequences are sorted by the number of sam
 
 Will be transformed to:
 
- OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
+| OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 |
 | --- | --- | --- | --- | --- | --- |
 | Seq 3 | 100 | 10 | 500 | 0 | 20 |
 | Seq 4 | 500 | 600 | 200 | 0 | 0 |
@@ -479,3 +517,55 @@ Will be transformed to:
 | Seq 2 | 100 | 0 | 200 | 0 | 2 |
 
 Since, the average read count for `Seq 3`, `Seq 4`, `Seq 1`, and `Seq 2`. The order of `Seq 4`, `Seq 1`, and `Seq 2` is determined on total read count.
+
+### 5.5 Sequence table details
+
+#### 5.5.1 --similarity
+
+The `--similarity` parameter specifies the sequence similarity threshold required between the child and parent sequence. The sequence similarity between parent and child can be calculated from a global or local pairwise sequence alignment (parameter: `--pairwise-alignment`). The alignment algorithm implemented in *tombRaider* is the Needleman-Wunsch algorithm ([Needleman & Wunsch, 1970](https://www.sciencedirect.com/science/article/pii/0022283670900574?via%3Dihub)) for the global alignment and the Smith-Waterman algorithm for the local alignment. The algorithm is natively coded in Python3 through dynamic programming for increased accurracy and speed, while also limiting the required number of dependencies for *tombRaider*. To speed up the execution time, users can specify a multiple sequence alignment input file (parameter: `--alignment-input`) from which the sequence similarity can be calculated, instead of a pairwise alignment. The sequence similarity is calculated by the following equation: 100 - (# of differences / alignment length * 100).
+
+#### 5.5.2 --pairwise-alignment
+
+The `--pairwise-alignment` parameter specifies if *tombRaider* should use the global pairwise alignment algorithm (`--pairwise-alignment global`) or the local pairwise alignment algorithm (`--pairwise-alignment local`). As default, this setting is set the the global pairwise alignment algorithm for increased accuracy of the alignment.
+
+### 5.6 Taxonomy file details
+
+#### 5.6.1 --blast-format
+
+Users can specify the format of the BLAST input file using the `--blast-format` parameter. Please see [4.3.1 BLAST](#431-blast) for more information.
+
+#### 5.6.2 --bold-format
+
+Users can specify the complete and summary `--bold-format` that is currently supported by *tombRaider*. Please see [4.3.2 BOLD](#432-bold) for more information.
+
+#### 5.6.3 --sintax-threshold
+
+Use the `--sintax-threshold` parameter without arguments for *tombRaider* to use the SINTAX results where the user-defined threshold has been applied, i.e., the fourth column in the SINTAX report.
+
+#### 5.6.4 --taxon-quality
+
+The `--taxon-quality` parameter can be used in combination with `--criteria 'taxID'` to not only investigate the taxonomic ID between both OTUs/ASVs under investigation, but also require the lower abundant OTU/ASV to not obtain a better match to the reference database compared to the higher abundant OTU/ASV.
+
+#### 5.6.5 --use-accession-id
+
+Users can specify the `--use-accession-id` parameter to set the taxonomic ID to the reference sequence ID for investigations into intraspecific variability. This option is only available when the taxonomy file is generated by BLAST, as the other taxonomic assignment methods do not provide this information.
+
+### 5.7 Alignment file details
+
+#### 5.7.1 --orf
+
+The `--orf` parameters provides users to specify the start of the open reading in the multiple sequence alignment input file and takes an integer between 1 and 3.
+
+#### 5.7.2 --calculate-pairwise
+
+Users can specify the `--calculate-pairwise` parameter without options to exclude the `--alignment-input` file for the sequence similarity calculation, but instead use the built-in pairwise alignment algorithms.
+
+### 5.8 Options
+
+#### 5.8.1 --example-run
+
+The `--example-run` parameters runs *tombRaider* using the example files provided when downloading *tombRaider* from GitHub. No additional parameters are required. This code (`tombRaider --example-run`) can be run to determine the successful installation of *tombRaider*.
+
+#### 5.8.2 --help; -h
+
+The `--help` and `-h` parameters print the help documentation to the console.

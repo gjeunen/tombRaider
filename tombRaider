@@ -6,7 +6,7 @@
 import os, sys, copy, rich, datetime, collections, rich.progress
 import rich_click as click
 from function import __version__
-from function.tombRaiderFunctions import checkTaxonomyFiles, freqToMemory, zotuToMemory, taxonomyToMemory, removeNegativeSamples, smith_waterman, needleman_wunsch
+from function.tombRaiderFunctions import checkTaxonomyFiles, freqToMemory, zotuToMemory, taxonomyToMemory, fillOutTaxonomyFiles, alignmentToMemory, verifySequences, verifyAlignment, removeNegativeSamples, pseudogeneIdentificationFunction, passingFunction, taxidIdentificationFunction, taxqualIdentificationFunction, cooccurIdentificationFunction, seqSimIdentificationFunction
 
 
 # Configuration for rich-click CLI help
@@ -20,22 +20,10 @@ click.rich_click.STYLE_ERRORS_SUGGESTION = ""
 click.rich_click.OPTION_GROUPS = {
     "tombRaider": [
         {
-            "name": "Main algorithm",
+            "name": "General information",
             "options": [
-                "--method",
-            ],
-        },
-        {
-            "name": "Parameters",
-            "options": [
-                "--occurrence-type",
-                "--detection-threshold",
-                "--similarity",
-                "--negative",
-                "--global-ratio",
-                "--local-ratio",
-                "--count",
-                "--sort",
+                "--criteria",
+                "--discard-artefacts",
             ],
         },
         {
@@ -43,10 +31,8 @@ click.rich_click.OPTION_GROUPS = {
             "options": [
                 "--frequency-input",
                 "--sequence-input",
-                "--blast-input",
-                "--bold-input",
-                "--sintax-input",
-                "--idtaxa-input",
+                "--taxonomy-input",
+                "--alignment-input",
             ],
         },
         {
@@ -54,83 +40,151 @@ click.rich_click.OPTION_GROUPS = {
             "options": [
                 "--frequency-output",
                 "--sequence-output",
-                "--blast-output",
-                "--bold-output",
-                "--sintax-output",
-                "--idtaxa-output",
-                "--condensed-log",
-                "--detailed-log",
+                "--taxonomy-output",
+                "--log",
             ],
         },
         {
             "name": "Frequency table details",
             "options": [
-                "--taxa-are-rows",
+                "--transpose",
                 "--omit-rows",
                 "--omit-columns",
+                "--occurrence-type",
+                "--occurrence-ratio",
+                "--detection-threshold",
+                "--negative",
+                "--sort",
+            ],
+        },
+        {
+            "name": "Sequence table details",
+            "options": [
+                "--similarity", 
+                "--pairwise-alignment",
             ],
         },
         {
             "name": "Taxonomy file details",
             "options": [
                 "--blast-format",
-                "--use-accession-id",
                 "--bold-format",
                 "--sintax-threshold",
+                "--taxon-quality",
+                "--use-accession-id",
+            ],
+        },
+        {
+            "name": "Alignment file details",
+            "options": [
+                "--orf",
+                "--calculate-pairwise",
             ],
         },
     ],
 }
 
+# general inputs
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
-@click.option("--method", default = 'taxon-dependent co-occurrence', help = "merging method: 'taxon-dependent co-occurrence' (default), 'taxon-independent co-occurrence', 'taxon-dependent merging'")
-@click.option("--frequency-input", "frequency_input_", help = "frequency table input file name")
-@click.option("--sequence-input", "sequence_input_", help = "sequence input file name")
-@click.option("--blast-input", "blast_input_", help = "blast input file name")
-@click.option("--bold-input", "bold_input_", help = "bold input file name")
-@click.option("--sintax-input", "sintax_input_", help = "sintax input file name")
-@click.option("--idtaxa-input", "idtaxa_input_", help = "idtaxa input file name")
-@click.option("--frequency-output", "frequency_output_", help = "frequency table output file name")
-@click.option("--sequence-output", "sequence_output_", help = "sequence output file name")
-@click.option("--blast-output", "blast_output_", help = "blast output file name")
-@click.option("--bold-output", "bold_output_", help = "bold output file name")
-@click.option("--sintax-output", "sintax_output_", help = "sintax output file name")
-@click.option("--idtaxa-output", "idtaxa_output_", help = "idtaxa output file name")
-@click.option("--condensed-log", "condensed_log_", help = "condensed log output file name")
-@click.option("--detailed-log", "detailed_log_", help = "detailed log output file name")
-@click.option("--occurrence-type", "occurrence_type_", default = 'abundance', help = "data structure type to assess co-occurrence pattern: 'presence-absence' or 'abundance' (default)")
-@click.option("--detection-threshold", "detection_threshold_", default = 1, help = "detection threshold to consider true detection (default = 1)")
-@click.option("--similarity", default = 90, help = "sequence similarity threshold between child and parent (default = 90)")
-@click.option("--negative", help = "list of negative control samples")
-@click.option("--global-ratio", "global_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across all samples")
-@click.option("--local-ratio", "local_ratio_", type = float, help = "minimum ratio for co-occurrence pattern to hold true counted across samples with positive detections")
-@click.option("--count", type = int, help = "maximum number of samples with a presence of child and absence of parent")
-@click.option("--blast-format", "blast_format_", default = "6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen", help = "format of 'blast-input' file as provided to parameter 'outfmt' in blastn")
-@click.option("--use-accession-id", "use_accession_id_", is_flag = True, help = "set accession number as taxonomic ID (for intraspecific variation)")
-@click.option("--bold-format", "bold_format_", help = "'bold-input' file format: 'summary' (default), 'complete'")
-@click.option("--sintax-threshold", "sintax_threshold_", is_flag = True, help = 'set sintax id and similarity to threshold column')
-@click.option("--taxa-are-rows", "taxa_are_rows_", default = True, help = "True: column headers = samples (default); False: column headers = taxa")
-@click.option("--omit-rows", "omit_rows_", help = "a list of row labels to drop from the frequency table")
-@click.option("--omit-columns", "omit_columns_", help = "a list of column labels to drop from the frequency table")
-@click.option("--sort", "sort_", help = "method to sort input files: 'total read count', 'average read count', 'detections'")
+@click.option("--criteria", "criteria_", help = "a string separated by ';' of included criteria to identify parent-child combos: 'taxID', 'seqSim', 'coOccur', 'pseudogene'")
+@click.option("--discard-artefacts", "remove_artefacts_", is_flag = True, help = "discard rather than merge artefacts with parent sequences")
 @click.option("--example-run", "example_run_", is_flag = True, help = "run tombRaider using the example files")
 
-def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_, frequency_output_, sequence_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_, condensed_log_, detailed_log_, occurrence_type_, detection_threshold_, similarity, negative, global_ratio_, local_ratio_, count, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, taxa_are_rows_, omit_rows_, omit_columns_, sort_, example_run_):
+# input files
+@click.option("--frequency-input", "frequency_input_", help = "frequency table input file name")
+@click.option("--sequence-input", "sequence_input_", help = "sequence input file name")
+@click.option("--taxonomy-input", "taxonomy_input_", help = "taxonomy input file name")
+@click.option("--alignment-input", "alignment_input_", help = "alignment input file name")
+@click.option("--blast-input", "blast_input_", help = "blast input file name", hidden = True)
+@click.option("--bold-input", "bold_input_", help = "bold input file name", hidden = True)
+@click.option("--sintax-input", "sintax_input_", help = "sintax input file name", hidden = True)
+@click.option("--idtaxa-input", "idtaxa_input_", help = "idtaxa input file name", hidden = True)
+
+# output files
+@click.option("--frequency-output", "frequency_output_", help = "frequency table output file name")
+@click.option("--sequence-output", "sequence_output_", help = "sequence output file name")
+@click.option("--taxonomy-output", "taxonomy_output_", help = "taxonomy output file name")
+@click.option("--blast-output", "blast_output_", help = "blast output file name", hidden = True)
+@click.option("--bold-output", "bold_output_", help = "bold output file name", hidden = True)
+@click.option("--sintax-output", "sintax_output_", help = "sintax output file name", hidden = True)
+@click.option("--idtaxa-output", "idtaxa_output_", help = "idtaxa output file name", hidden = True)
+@click.option("--log", "log_", help = "log output file name")
+
+# frequency_input_
+@click.option("--occurrence-type", "occurrence_type_", help = "data structure type to assess co-occurrence pattern: 'presence-absence' or 'abundance'")
+@click.option("--occurrence-ratio", "occurrence_ratio", help = "ratio type and value for co-occurrence pattern to hold true: 'global;1.0', 'local;1.0', or 'count;1'")
+@click.option("--detection-threshold", "detection_threshold_", type = int, default = 1, help = "detection threshold to consider true detection (default: 0)")
+@click.option("--negative", help = "list of negative control samples")
+@click.option("--transpose", "transpose_", is_flag = True, help = "transpose 'frequency-input' to set taxa as rows")
+@click.option("--omit-rows", "omit_rows_", help = "a list of row labels to drop from the frequency table")
+@click.option("--omit-columns", "omit_columns_", help = "a list of column labels to drop from the frequency table")
+@click.option("--sort", "sort_", help = "OTU/ASV sorting method: 'total read count', 'average read count', 'detections'. Original order kept when 'sort' not provided")
+
+# sequence_input_
+@click.option("--similarity", "similarity_", help = "sequence similarity threshold between child and parent")
+
+# taxonomy_input_
+@click.option("--taxon-quality", "taxon_quality_", is_flag = True, help = "requires taxonomic assignment score of parent >= child")
+@click.option("--blast-format", "blast_format_", help = "format of 'blast-input' file as provided to parameter 'outfmt' in blastn")
+@click.option("--use-accession-id", "use_accession_id_", is_flag = True, help = "set accession number as taxonomic ID (for intraspecific variation)")
+@click.option("--bold-format", "bold_format_", help = "'bold-input' file format: 'summary', 'complete'")
+@click.option("--sintax-threshold", "sintax_threshold_", is_flag = True, help = 'set sintax id and similarity to threshold column')
+
+# alignment_input_
+@click.option("--orf", "orf_", type = int, help = "start position of the open reading frame")
+@click.option("--calculate-pairwise", "calculate_pairwise_", is_flag = True, help = "exclude 'alignment-input' for sequence similarity")
+@click.option("--pairwise-alignment", "pairwise_alignment_", default = 'global', help = "'global' (default) or 'local' alignment algorithm")
+
+def tombRaider(**kwargs):
     """tombRaider is a taxon-dependent co-occurrence algorithm to identify and remove artefacts from metabarcoding datasets.
     
-    The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity thesholds, and sample co-occurrence patterns. Besides the main algorithm, implementations for two other approaches to identify artefact sequences are incorporated, including a taxon-independent co-occurrence model and
-    taxon-dependent merging.
+    The algorithm identifies parent-child sequences based on taxonomic ID, sequence similarity, and co-occurrence patterns. Additionally, the algorithm can identify pseudogenes through the presence of stop codons.
     
 
 
-    To create the BLAST input file, use the blastn -outfmt '6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen' parameter to enable the default settings for '--seqname' , '--taxid', '--pident', '--qcov', and '--eval'. Other formats besides '-outfmt 6' are currently not supported by tombRaider.
-
-    
-    
     To run tombRaider with default settings, use: 
     
-    [blue bold]tombRaider --method 'taxon-dependent co-occurrence' --frequency-input count.txt --taxonomy-input blast.txt --sequence-input otu.fasta --frequency-output count_new.txt --taxonomy-output blast_new.txt --sequence-output otu_new.fasta --occurrence-type abundance[/]
+    [blue bold]tombRaider --frequency-input count.txt --taxonomy-input blast.txt --sequence-input otu.fasta --frequency-output count_new.txt --taxonomy-output blast_new.txt --sequence-output otu_new.fasta --occurrence-type abundance[/]
     """
+    # access all options from kwargs
+    criteria_ = kwargs.get("criteria_")
+    frequency_input_ = kwargs.get("frequency_input_")
+    sequence_input_ = kwargs.get("sequence_input_")
+    taxonomy_input_ = kwargs.get("taxonomy_input_")
+    alignment_input_ = kwargs.get("alignment_input_")
+    blast_input_ = kwargs.get("blast_input_")
+    bold_input_ = kwargs.get("bold_input_")
+    sintax_input_ = kwargs.get("sintax_input_")
+    idtaxa_input_ = kwargs.get("idtaxa_input_")
+    frequency_output_ = kwargs.get("frequency_output_")
+    sequence_output_ = kwargs.get("sequence_output_")
+    taxonomy_output_ = kwargs.get("taxonomy_output_")
+    blast_output_ = kwargs.get("blast_output_")
+    bold_output_ = kwargs.get("bold_output_")
+    sintax_output_ = kwargs.get("sintax_output_")
+    idtaxa_output_ = kwargs.get("idtaxa_output_")
+    log_ = kwargs.get("log_")
+    occurrence_type_ = kwargs.get("occurrence_type_")
+    detection_threshold_ = kwargs.get("detection_threshold_")
+    similarity_ = kwargs.get("similarity_")
+    negative_ = kwargs.get("negative")
+    occurrence_ratio_ = kwargs.get("occurrence_ratio_")
+    blast_format_ = kwargs.get("blast_format_")
+    use_accession_id_ = kwargs.get("use_accession_id_")
+    bold_format_ = kwargs.get("bold_format_")
+    sintax_threshold_ = kwargs.get("sintax_threshold_")
+    transpose_ = kwargs.get("transpose_")
+    omit_rows_ = kwargs.get("omit_rows_")
+    omit_columns_ = kwargs.get("omit_columns_")
+    sort_ = kwargs.get("sort_")
+    taxon_quality_ = kwargs.get("taxon_quality_")
+    orf_ = kwargs.get("orf_")
+    example_run_ = kwargs.get("example_run_")
+    calculate_pairwise_ = kwargs.get("calculate_pairwise_")
+    pairwise_alignment_ = kwargs.get("pairwise_alignment_")
+    remove_artefacts_ = kwargs.get("discard_artefacts_")
+
+    # print starting info to console
     console = rich.console.Console(stderr=True, highlight=False)
     console.print(f"\n[yellow]/[/][cyan]/[/][yellow]/[/] [bold][link=https://github.com/gjeunen/tombRaider]tombRaider[/link][/] | v{__version__}\n")
     columns = [*rich.progress.Progress.get_default_columns(), rich.progress.TimeElapsedColumn()]
@@ -141,169 +195,206 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
     # check if example-run needs to be executed
     if example_run_:
         currentDirectory = os.path.dirname(os.path.abspath(__file__))
-        method = 'taxon-dependent co-occurrence'
+        criteria_ = 'taxId;seqSim;coOccur'
         frequency_input_ = f'{currentDirectory}/exampleFiles/zotutabweb.txt'
-        blast_input_ = f'{currentDirectory}/exampleFiles/blastTaxonomy.txt'
+        taxonomy_input_ = f'{currentDirectory}/exampleFiles/blastTaxonomy.txt'
         sequence_input_ = f'{currentDirectory}/exampleFiles/zotus.fasta'
         occurrence_type_ = 'abundance'
-        count = 0
         sort_ = 'total read count'
+        blast_format_ = '6 qaccver saccver ssciname staxid length pident mismatch qcovs evalue bitscore qstart qend sstart send gapopen'
+        taxon_quality_ = ''
+        similarity_ = 90
+        occurrence_ratio_ = 'count;0'
 
-    # check --method option is valid and pass parameters to the function file
-    if method == 'taxon-dependent co-occurrence':
-        console.print(f"[cyan]|              Method[/] | {method} (default)")
-    elif method == 'taxon-independent co-occurrence':
-        console.print(f"[cyan]|              Method[/] | {method}")
-    elif method == 'taxon-dependent merging':
-        console.print(f"[cyan]|              Method[/] | {method}")
-    elif method == None:
-        console.print("[cyan]|              Method[/] | [bold yellow]parameter --method not specified, aborting analysis...[/]")
+    # check criteria_ input string
+    currentlyAvailableCriteria = {
+        'TAXID' : 'taxID',
+        'SEQSIM' : 'seqSim',
+        'COOCCUR' : 'coOccur',
+        'PSEUDOGENE' : 'pseudogene',
+    }
+    providedCriteria = {}
+    unidentifiedCriteria = []
+    try:
+        for crit in criteria_.rstrip(';').split(';'):
+            if crit.upper() not in currentlyAvailableCriteria:
+                if crit != '':
+                    unidentifiedCriteria.append(crit)
+            else:
+                providedCriteria[crit.upper()] = crit
+    except AttributeError:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]parameter '--criteria' not provided, aborting analysis...[/]\n")
         exit()
-    else:
-        console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
+    if len(unidentifiedCriteria) != 0:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]unidentified criteria found ({', '.join(unidentifiedCriteria)}), aborting analysis...[/]\n")
+        exit()
+    if len(providedCriteria) == 0:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]0 provided criteria identified, aborting analysis...[/]\n")
         exit()
     
-    # try reading in the files
-    # if method == 'taxon-dependent co-occurrence': need to read in frequency_input_, sequence_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_
-    # if method == 'taxon-independent co-occurrence': need to read in frequency_input_, sequence_input_ (at the end we still need to read in the tax files for updating)
-    # if method == 'taxon-dependent merging': need to read in frequency_input, blast_input_, bold_input_, sintax_input_, idtaxa_input_
-    # before reading in the files, we will check the taxonomy file type and error out when taxonomy file is not provided for 'taxon-dependent co-occurrence' and 'taxon-dpeendent merging'
-    taxonomyInputFile, taxonomyFileType = checkTaxonomyFiles(blast_input_, bold_input_, sintax_input_, idtaxa_input_)
-    if taxonomyFileType == None and method != 'taxon-independent co-occurrence':
-        console.print(f"[cyan]|               ERROR[/] | [bold yellow]--blast-input or --bold-input or --sintax-input or --idtaxa-input parameter not specified, aborting analysis...[/]\n")
+    # now that we have identified the criteria that need to be assessed, we can check if all necessary parameters have been provided
+    # rather than erroring out immediately, list all missing parameters in the error message.
+    # the one different criteria is TAXID, where there are multiple potential documents and only one needs to be provided. Find the one that was provided or name None if missing.
+    taxonomyInputFile, taxonomyFileType = checkTaxonomyFiles(taxonomy_input_, blast_input_, bold_input_, sintax_input_, idtaxa_input_)
+    if taxonomyFileType == 'too-many-tax-files':
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]more than one taxonomy file provided, aborting analysis...[/]\n")
         exit()
-    # now we can read in the files with an if statement whereby the files that are read in are different for each method
+    # once TAXID is simplified to one document, we can map the parameters for each provided criteria and see which ones are missing.
+    # the missing ones need to be written to the console and make tombRaider error out.
+    neededParametersForCriteria = {
+        'TAXID' : {taxonomyInputFile : '"--taxonomy-input"'},
+        'SEQSIM' : {sequence_input_ : '"--sequence-input"', similarity_ : '"--similarity"'},
+        'COOCCUR' : {occurrence_type_ : '"--occurrence-type"', occurrence_ratio_ : '"--occurrence-ratio"'},
+        'PSEUDOGENE' : {alignment_input_ : '"--alignment-input"', orf_ : '"--orf"'},
+    }
+    missingCriteria = []
+    for criteria in providedCriteria.keys():
+        for key, value in neededParametersForCriteria[criteria].items():
+            if key is None or key is False:
+                missingCriteria.append(value)
+    if len(missingCriteria) > 0:
+        console.print(f"[cyan]|               ERROR[/] | [bold yellow]{', '.join(missingCriteria)} not provided, aborting analysis...[/]\n")
+        exit()
+    
+    # if no error, write included and excluded criteria to console
+    console.print(f"[cyan]|   Included Criteria[/] | {', '.join(providedCriteria.keys()).lower()}")
+    if len(set(currentlyAvailableCriteria.keys()) - set(providedCriteria.keys())) > 0:
+        console.print(f"[cyan]|   Excluded Criteria[/] | {', '.join(list(set(currentlyAvailableCriteria.keys()) - set(providedCriteria.keys()))).lower()}")
+    
+    # after criteria and parameter validation, read in all files provided by the user
     try:
-        if method == 'taxon-dependent co-occurrence':
-            inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile]
-        elif method == 'taxon-independent co-occurrence':
-            if taxonomyFileType == None:
-                inputFilePaths = [frequency_input_, sequence_input_]
-            else:
-                inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile]
-        elif method == 'taxon-dependent merging':
-            inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile]
-        else:
-            console.print("[cyan]|               ERROR[/] | [bold yellow]option for '--method' not identified, aborting analysis...[/]\n")
-            exit()
-        inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePaths)
+        inputFilePaths = [frequency_input_, sequence_input_, taxonomyInputFile, alignment_input_]
+        inputFilePathsProvided = [inputFilePath for inputFilePath in inputFilePaths if inputFilePath is not None]
+        inputTotalFileSize = sum(os.path.getsize(inputFilePath) for inputFilePath in inputFilePathsProvided)
         with rich.progress.Progress(*columns) as progress_bar:
             pbar = progress_bar.add_task(console = console, description = "[cyan]|       Reading Files[/] |", total = inputTotalFileSize)
-            for inputFilePath in inputFilePaths:
+            alignmentInputDict = {}
+            alignmentVerification = {}
+            taxonomyForMissingSeqs = []
+            taxIdInputDict = {}
+            taxPidentInputDict = {}
+            taxTotalDict = {}
+            for inputFilePath in inputFilePathsProvided:
                 if inputFilePath == frequency_input_:
-                    frequencyTable, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar, console, taxa_are_rows_, omit_rows_, omit_columns_, sort_)
+                    frequencyTable, pbar, progress_bar = freqToMemory(frequency_input_, pbar, progress_bar, console, transpose_, omit_rows_, omit_columns_, sort_)
                 elif inputFilePath == sequence_input_:
                     seqInputDict, pbar, progress_bar = zotuToMemory(sequence_input_, frequencyTable, pbar, progress_bar)
+                    seqVerification = verifySequences(seqInputDict, frequencyTable)
                 elif inputFilePath == taxonomyInputFile:
-                    taxIdInputDict, taxPidentInputDict, taxTotalDict, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, frequencyTable, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console)
+                    taxIdInputDict, taxPidentInputDict, taxTotalDict, taxonomyFileType, taxonomyForMissingSeqs, pbar, progress_bar = taxonomyToMemory(taxonomyInputFile, taxonomyFileType, blast_format_, use_accession_id_, bold_format_, sintax_threshold_, seqInputDict, pbar, progress_bar, console)
+                    taxIdInputDict, taxPidentInputDict, taxTotalDict = fillOutTaxonomyFiles(taxIdInputDict, taxPidentInputDict, taxTotalDict, frequencyTable)
+                elif inputFilePath == alignment_input_:
+                    alignmentInputDict, pbar, progress_bar = alignmentToMemory(alignment_input_, pbar, progress_bar)
+                    alignmentVerification = verifyAlignment(alignmentInputDict, seqInputDict)
     except TypeError as e:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{e}, aborting analysis...[/]\n")
         exit()
     except FileNotFoundError as f:
         console.print(f"[cyan]|               ERROR[/] | [bold yellow]{f}, aborting analysis...[/]\n")
         exit()
-    
+    if len(seqVerification) > 0:
+        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]missing sequences in '--sequence-input' ({', '.join(seqVerification)}), aborting analysis...[/]\n")
+        exit()
+    if len(taxonomyForMissingSeqs) > 0:
+        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]'--taxonomy-input' contains ID's not found in '--sequence-input' ({', '.join(set(taxonomyForMissingSeqs))}), aborting analysis...[/]\n")
+        exit()
+    if len(alignmentVerification) > 0:
+        console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]issues associated with alignment ({', '.join(alignmentVerification.keys())}), aborting analysis...[/]\n")
+        exit()
+
     # calculate number of unique combinations for progress bar (x = ((n * n) - n) / 2)
     uniqueCombinations = int(((len(frequencyTable) * len(frequencyTable)) - len(frequencyTable)) / 2)
 
     # get list of samples and exclude if negative != None
     frequencyTableSubset = copy.deepcopy(frequencyTable)
-    if negative != None:
-        frequencyTableSubset = removeNegativeSamples(negative, frequencyTableSubset)
+    if negative_ != None:
+        frequencyTableSubset = removeNegativeSamples(negative_, frequencyTableSubset)
     
+    # set all functions before the for loop so that there is no need to check if-statements multiple times
+    if 'PSEUDOGENE' in providedCriteria:
+        pseudogeneIdentification = pseudogeneIdentificationFunction
+    else:
+        pseudogeneIdentification = passingFunction
+    if 'TAXID' in providedCriteria:
+        taxidIdentification = taxidIdentificationFunction
+    else:
+        taxidIdentification = passingFunction
+        taxon_quality_ = None
+    if taxon_quality_:
+        taxqualIdentification = taxqualIdentificationFunction
+    else:
+        taxqualIdentification = passingFunction
+    if 'COOCCUR' in providedCriteria:
+        cooccurIdentification = cooccurIdentificationFunction
+    else:
+        cooccurIdentification = passingFunction
+    if 'SEQSIM' in providedCriteria:
+        seqsimIdentification = seqSimIdentificationFunction
+    else:
+        seqsimIdentification = passingFunction
+
     # determine parent and child sequences
     childParentComboDict = {}
+    pseudogeneDict = {}
     combinedDict = collections.defaultdict(list)
     logDict = collections.defaultdict(lambda: collections.defaultdict(list))
-    condensedLogDict = collections.defaultdict(lambda: collections.defaultdict(list))
     with rich.progress.Progress(*columns) as progress_bar:
         pbar = progress_bar.add_task(console = console, description = "[cyan]|  Identify artefacts[/] |", total=uniqueCombinations)
-        for parent in range(len(frequencyTableSubset) - 1):
+        for parent in range(len(frequencyTableSubset)):
+            parentID = frequencyTableSubset.index[parent]
+            pseudogeneDict = pseudogeneIdentification(alignmentInputDict, orf_, parentID, pseudogeneDict)
             for child in range(parent + 1, len(frequencyTableSubset)):
+                childID = frequencyTableSubset.index[child]
                 progress_bar.update(pbar, advance=1)
                 try:
                     # 1. check if child already identified as child for a more abundant sequence, skip if yes
-                    # true for all method options
-                    if frequencyTableSubset.index[child] in childParentComboDict:
+                    if childID in childParentComboDict:
                         continue
                     # 2. check if taxonomic ID is matching between parent and child
-                    # skip for method == 'taxon-independent co-occurrence'
-                    if method != 'taxon-independent co-occurrence':
-                        if not set(taxIdInputDict[frequencyTableSubset.index[parent]]) & set(taxIdInputDict[frequencyTableSubset.index[child]]):
-                            continue
-                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'matching tax IDs ({list(set(taxIdInputDict[frequencyTableSubset.index[parent]]) & set(taxIdInputDict[frequencyTableSubset.index[child]]))[0]})')
-                        condensedLogDict[frequencyTableSubset.index[child]]['matching tax IDs'].append(frequencyTableSubset.index[parent])
-                    # 3. check if similarity score is lower for child than parent
-                    # only for method == 'taxon-dependent co-occurrence
-                    if method == 'taxon-dependent co-occurrence':
-                        if taxPidentInputDict[frequencyTableSubset.index[child]][0] > taxPidentInputDict[frequencyTableSubset.index[parent]][0]:
-                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'similarity score threshold not met ({taxPidentInputDict[frequencyTableSubset.index[child]][0]}, {taxPidentInputDict[frequencyTableSubset.index[parent]][0]})')
-                            continue
-                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'similarity score threshold met ({taxPidentInputDict[frequencyTableSubset.index[child]][0]}, {taxPidentInputDict[frequencyTableSubset.index[parent]][0]})')
-                        condensedLogDict[frequencyTableSubset.index[child]]['BLAST score threshold met'].append(frequencyTableSubset.index[parent])
+                    similarID = taxidIdentification(logDict, childID, parentID, taxIdInputDict)
+                    if similarID == False:
+                        continue
+                    # 3. check if taxonomic ID similarity score is equal or lower for child than parent
+                    betterPidentScore = taxqualIdentification(logDict, childID, parentID, taxPidentInputDict)
+                    if betterPidentScore == False:
+                        continue                        
                     # 4. check co-occurrence pattern
-                    # skip for method == 'taxon-dependent merging'
-                    if method != 'taxon-dependent merging':
-                        positiveDetectionsChild = frequencyTableSubset.iloc[child][frequencyTableSubset.iloc[child] >= detection_threshold_].index.tolist()
-                        positiveDetectionsParent = frequencyTableSubset.iloc[parent][frequencyTableSubset.iloc[parent] >= detection_threshold_].index.tolist()
-                        if occurrence_type_ == 'presence-absence':
-                            missingCount = len(set(positiveDetectionsChild) - set(positiveDetectionsParent))
-                        elif occurrence_type_ == 'abundance':
-                            missingCount = ((frequencyTableSubset.iloc[child] >= detection_threshold_) & (frequencyTableSubset.iloc[child] > frequencyTableSubset.iloc[parent])).sum()
-                        else:
-                            console.print(f"[cyan]\n|               ERROR[/] | [bold yellow]'--occurrence-type' not specified as 'presence-absence' or 'abundance', aborting analysis...[/]\n")
-                            exit()
-                        if count or count == 0:
-                            if count < missingCount:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'child too frequently found without parent ({count}/{missingCount})')
-                                continue
-                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({count}/{missingCount})')
-                        elif global_ratio_ or global_ratio_ == 0:
-                            if 1 - (missingCount / len(frequencyTableSubset.index.tolist())) < global_ratio_:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'global co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
-                                continue
-                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({float("{:.2f}".format(1 - (missingCount / len(frequencyTableSubset.index.tolist()))))}%)')
-                        elif local_ratio_ or local_ratio_ == 0:
-                            if 1 - (missingCount / (len(positiveDetectionsParent) + missingCount)) < local_ratio_:
-                                logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'local co-occurrence ratio not met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
-                                continue
-                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'co-occurrence ratio met ({float("{:.2f}".format(1 - (missingCount / (len(positiveDetectionsParent) + missingCount))))}%)')
-                        else:
-                            console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]--global-ratio or --local-ratio or --count parameter not specified, aborting analysis...[/]\n")
-                            exit()
-                        condensedLogDict[frequencyTableSubset.index[child]]['co-occurrence rate met'].append(frequencyTableSubset.index[parent])
+                    cooccurScore = cooccurIdentification(console, frequencyTableSubset, child, detection_threshold_, parent, occurrence_type_, occurrence_ratio_, logDict, childID, parentID)
+                    if cooccurScore == False:
+                        continue
                     # 5. check sequence similarity
-                    # skip for method == 'taxon-dependent merging
-                    if method != 'taxon-dependent merging':
-                        alignmentSeq1, alignmentSeq2 = needleman_wunsch(seqInputDict[frequencyTableSubset.index[parent]], seqInputDict[frequencyTableSubset.index[child]])
-                        distanceCalculation = sum(1 for a, b in zip(alignmentSeq1, alignmentSeq2) if a != b)
-                        if 100 - (distanceCalculation/ max(len(seqInputDict[frequencyTableSubset.index[parent]]), len(seqInputDict[frequencyTableSubset.index[child]])) * 100) <= int(similarity):
-                            logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'sequence similarity threshold not met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[frequencyTableSubset.index[parent]]), len(seqInputDict[frequencyTableSubset.index[child]])) * 100)))}%)')
-                            continue
-                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'sequence similarity threshold met ({float("{:.2f}".format(100 - (distanceCalculation/ max(len(seqInputDict[frequencyTableSubset.index[parent]]), len(seqInputDict[frequencyTableSubset.index[child]])) * 100)))}%)')
-                        condensedLogDict[frequencyTableSubset.index[child]]['sequence similarity threshold met'].append(frequencyTableSubset.index[parent])
-                    # 6. merge child - parent data
-                    # true for all method options
-                    # 6.1 method 1: if parent not identified as a child previously, we can combine child and parent data
-                    if frequencyTableSubset.index[parent] not in childParentComboDict:
-                        childParentComboDict[frequencyTableSubset.index[child]] = frequencyTableSubset.index[parent]
-                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'parent identified!')
-                        condensedLogDict[frequencyTableSubset.index[child]]['parent identified!'].append(frequencyTableSubset.index[parent])
-                        combinedDict[frequencyTableSubset.index[parent]].append(frequencyTableSubset.index[child])
-                        frequencyTable.loc[frequencyTable.index[parent]] += frequencyTable.loc[frequencyTable.index[child]]
-                    # 6.2 method 2: if parent already identfied as a child previously, add child to grandparent data
-                    elif frequencyTableSubset.index[parent] in childParentComboDict:
-                        combinedDict[childParentComboDict[frequencyTableSubset.index[parent]]].append(frequencyTableSubset.index[child])
-                        childParentComboDict[frequencyTableSubset.index[child]] = childParentComboDict[frequencyTableSubset.index[parent]]
-                        logDict[frequencyTableSubset.index[child]][frequencyTableSubset.index[parent]].append(f'grandparent identified ({childParentComboDict[frequencyTableSubset.index[parent]]})!')
-                        condensedLogDict[frequencyTableSubset.index[child]]['grandparent identified!'].append(childParentComboDict[frequencyTableSubset.index[parent]])
-                        frequencyTable.loc[childParentComboDict[frequencyTableSubset.index[parent]]] += frequencyTable.loc[frequencyTable.index[child]]
+                    seqSimScore = seqsimIdentification(console, seqInputDict[parentID], seqInputDict[childID], alignmentInputDict, childID, parentID, calculate_pairwise_, pairwise_alignment_, similarity_, logDict)
+                    if seqSimScore == False:
+                        continue
+                    # 6. process artefacts - either merging or removing
+                    # 6.1.1 combine child with parent when parent is not identified as a child previously
+                    if parentID not in childParentComboDict:
+                        childParentComboDict[childID] = parentID
+                        logDict[childID][parentID].append(f'parent identified!')
+                        combinedDict[parentID].append(childID)
+                        if not remove_artefacts_:
+                            frequencyTable.loc[parentID] += frequencyTable.loc[childID]
+                        else:
+                            frequencyTable.drop(childID)
+                    # 6.1.2 combine child with grandparent when parent is already identified as a child previously
+                    elif parentID in childParentComboDict:
+                        combinedDict[childParentComboDict[parentID]].append(childID)
+                        childParentComboDict[childID] = childParentComboDict[parentID]
+                        logDict[childID][parentID].append(f'grandparent identified ({childParentComboDict[parentID]})!')
+                        if not remove_artefacts_:
+                            frequencyTable.loc[childParentComboDict[parentID]] += frequencyTable.loc[childID]
+                        else:
+                            frequencyTable.drop(childID)
                 except KeyError as k:
-                    console.print(f"[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
+                    console.print(f"\n[cyan]|               ERROR[/] | [bold yellow]{k}, aborting analysis...[/]\n")
                     exit()
-    
+
+    # remove any pseudogenes that are in the data
+    if pseudogeneDict:
+        for pseudogene in pseudogeneDict:
+            frequencyTable.drop(pseudogene)
+
     # write updated frequency table to output
-    # true for all method options
     frequencyTable = frequencyTable.drop(list(childParentComboDict.keys()))
     if frequency_output_:
         frequencyTable.to_csv(frequency_output_, sep = '\t', index = True)
@@ -311,7 +402,6 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
        console.print(f"[cyan]|             WARNING[/] | [bold yellow]--frequency-output not specified, not writing updated table to file...[/]")
 
     # write updated sequence file to output
-    # true for all methods
     try:
         with open(sequence_output_, 'w') as seqoutfile:
             for item in frequencyTable.index.tolist():
@@ -321,7 +411,7 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
     
     # write updated taxonomy file to output
     try:
-        taxonomyOutputFile, taxonomyOutputFileType = checkTaxonomyFiles(blast_output_, bold_output_, sintax_output_, idtaxa_output_)
+        taxonomyOutputFile, taxonomyOutputFileType = checkTaxonomyFiles(taxonomy_output_, blast_output_, bold_output_, sintax_output_, idtaxa_output_)
         with open(taxonomyOutputFile, 'w') as taxoutfile:
             for item in frequencyTable.index.tolist():
                 for subitem in taxTotalDict[item]:
@@ -330,10 +420,75 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
         if taxonomyInputFile != None:
             console.print(f"[cyan]|             WARNING[/] | [bold yellow]--{taxonomyFileType}-output not specified, not writing updated taxonomy to file...[/]")
     
+    # write log output file
+    try:
+        with open(log_, 'w') as logoutfile:
+            logoutfile.write('#################\n#### SUMMARY ####\n#################\n\n')
+            logoutfile.write(f'date-time: {formattedTime}\n\n')
+            logoutfile.write(f'code: tombRaider {commandLineInput}\n\n')
+            logoutfile.write(f'parameters:\n')
+            logoutfile.write(f'--criteria (included): {", ".join(providedCriteria)}\n')
+            if len(set(currentlyAvailableCriteria.keys()) - set(providedCriteria.keys())) > 0:
+                logoutfile.write(f'--criteria (excluded) : {", ".join(list(set(currentlyAvailableCriteria.keys()) - set(providedCriteria.keys()))).lower()}\n')
+            logoutfile.write(f'--occurrence type: {occurrence_type_}\n')
+            logoutfile.write(f'--occurence ratio: {occurrence_ratio_}\n')
+            logoutfile.write(f'--detection threshold: {detection_threshold_}\n')
+            logoutfile.write(f'--similarity threshold: {similarity_}\n')
+            logoutfile.write(f'--taxonomy file type: {taxonomyFileType}\n')
+            if taxonomyFileType == 'blast':
+                logoutfile.write(f'--blast format: {blast_format_}\n')
+            if taxonomyFileType == 'bold':
+                logoutfile.write(f'--bold format: {bold_format_}\n')
+            if taxonomyFileType == 'sintax' and sintax_threshold_:
+                logoutfile.write(f'--sintax format: using threshold column\n')
+            elif taxonomyFileType == 'sintax' and not sintax_threshold_:
+                logoutfile.write(f'--sintax format: not using threshold column\n')
+            if taxon_quality_:
+                logoutfile.write(f'--taxon quality: assessed\n')
+            if use_accession_id_:
+                logoutfile.write(f'--accession ID: taxonomic ID set to sequence ID to investigate intraspecific variation\n')
+            if not alignment_input_ or calculate_pairwise_:
+                logoutfile.write(f'--pairwise alignment algorithm: {pairwise_alignment_}\n')
+            if alignment_input_ and not calculate_pairwise_:
+                logoutfile.write(f'--sequence similarity: calculated based on user-provided multiple sequence alignment file\n')
+            if 'PSEUDOGENE' in providedCriteria:
+                logoutfile.write(f'--open reading frame start position: {orf_}\n')
+            if not sort_:
+                logoutfile.write(f'--sort: original order of count table kept\n')
+            elif sort_:
+                logoutfile.write(f'--sorting method: {sort_}\n')
+            if remove_artefacts_:
+                logoutfile.write(f'--remove artefacts: artefacts removed rather than merged\n')
+            elif not remove_artefacts_:
+                logoutfile.write(f'--remove artefacts: artefacts merged with parent sequences\n')
+            if len(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns))) > 0:
+                logoutfile.write(f'--sample exclusion list: {", ".join(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns)))}\n\n')
+            logoutfile.write(f'\nresults:\n')
+            logoutfile.write(f'--total seqs: {len(seqInputDict)}\n')
+            if 'PSEUDOGENE' in providedCriteria:
+                logoutfile.write(f'--total pseudogenes: {len(pseudogeneDict)} ({float("{:.2f}".format(len(pseudogeneDict) / len(seqInputDict) * 100))}%)\n')
+                logoutfile.write(f'--pseudogene list: {", ".join(pseudogeneDict.keys())}\n')
+            logoutfile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
+            for item in combinedDict:
+                logoutfile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
+            logoutfile.write(f'\n###########################\n#### DETAILED ANALYSIS ####\n###########################\n\n')
+            for item in logDict:
+                logoutfile.write(f'### analysing: {item} ###\n')
+                for subitem in logDict[item]:
+                    for sub in logDict[item][subitem]:
+                        logoutfile.write(f'{subitem}: {sub}\n')
+                    logoutfile.write('\n')
+                logoutfile.write('\n')
+
+    except TypeError as e:
+        console.print(f"[cyan]|             WARNING[/] | [bold yellow]--log not specified, not writing detailed analysis to log file...[/]")
+    
     # write Terminal log
     console.print(f"[cyan]|  Summary Statistics[/] | [bold yellow][/]")
     console.print(f"[cyan]|     Total # of ASVs[/] | [bold yellow]{len(seqInputDict)}[/]")
     console.print(f"[cyan]|Total # of Artefacts[/] | [bold yellow]{len(childParentComboDict)} ({float('{:.2f}'.format(len(childParentComboDict) / len(seqInputDict) * 100))}%)[/]")
+    if pseudogeneDict:
+        console.print(f"[cyan]|    # of Pseudogenes[/] | [bold yellow]{len(pseudogeneDict)} ({float('{:.2f}'.format(len(pseudogeneDict) / len(seqInputDict) * 100))}%)[/]")
     console.print(f"[cyan]|       Artefact List[/] | [bold yellow][/]")
     for item in combinedDict:
         spaces = ' ' * (9 - len(item))
@@ -341,49 +496,9 @@ def tombRaider(method, frequency_input_, sequence_input_, blast_input_, bold_inp
             console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]child:      {', '.join(combinedDict[item])}[/]")
         else:
             console.print(f"[cyan]|    parent:{spaces}{item}[/] | [bold yellow]children:   {', '.join(combinedDict[item])}[/]")
-    
-    # write log output files
-    fileType = 0
-    for logFile in [detailed_log_, condensed_log_]:
-        fileType += 1
-        try:
-            with open(logFile, 'w') as LogFile:
-                LogFile.write('#################\n#### SUMMARY ####\n#################\n\n')
-                LogFile.write(f'date-time: {formattedTime}\n\n')
-                LogFile.write(f'code: tombRaider {commandLineInput}\n\n')
-                LogFile.write(f'parameters:\n')
-                LogFile.write(f'--method: taxon-dependent co-occurrence (default)\n')
-                LogFile.write(f'--occurrence type: {occurrence_type_}\n')
-                LogFile.write(f'--detection threshold: {detection_threshold_}\n')
-                LogFile.write(f'--similarity threshold: {similarity}\n')
-                if count or count == 0:
-                    LogFile.write(f'--co-occurrence count: {count}\n')
-                elif global_ratio_ or global_ratio_ == 0:
-                    LogFile.write(f'--co-occurrence global ratio: {global_ratio_}\n')
-                elif local_ratio_ or local_ratio_ == 0:
-                    LogFile.write(f'--co-occurrence local ratio: {local_ratio_}\n')
-                LogFile.write(f'--sample exclusion list: {", ".join(list(set(frequencyTable.columns).difference(frequencyTableSubset.columns)))}\n\n')
-                LogFile.write(f'results:\n')
-                LogFile.write(f'--total seqs: {len(seqInputDict)}\n')
-                LogFile.write(f'--total artefacts: {len(childParentComboDict)} ({float("{:.2f}".format(len(childParentComboDict) / len(seqInputDict) * 100))}%)\n')
-                for item in combinedDict:
-                    LogFile.write(f'--parent {item}: {", ".join(combinedDict[item])}\n')
-                if fileType == 1:
-                    LogFileDict = logDict
-                    LogFileString = 'DETAILED'
-                elif fileType == 2:
-                    LogFileDict = condensedLogDict
-                    LogFileString = 'CONDENSED'
-                LogFile.write(f'\n###########################\n#### {LogFileString} ANALYSIS ####\n###########################\n\n')
-                for item in LogFileDict:
-                    LogFile.write(f'### analysing: {item} ###\n')
-                    for subitem in LogFileDict[item]:
-                        LogFile.write(f'{subitem}:\t')
-                        outputString = "\t".join(LogFileDict[item][subitem])
-                        LogFile.write(f'{outputString}\n')
-                    LogFile.write('\n')
-        except TypeError:
-            pass
+    if pseudogeneDict:
+        console.print(f"[cyan]|     Pseudogene List[/] | [bold yellow][/]")
+        console.print(f"[cyan]|         pseudogenes[/] | [bold yellow]{', '.join(pseudogeneDict.keys())}[/]")
 
 if __name__ == "__main__":
     tombRaider()

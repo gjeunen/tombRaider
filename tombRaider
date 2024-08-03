@@ -112,7 +112,7 @@ click.rich_click.OPTION_GROUPS = {
 
 # frequency_input_
 @click.option("--occurrence-type", "occurrence_type_", help = "data structure type to assess co-occurrence pattern: 'presence-absence' or 'abundance'")
-@click.option("--occurrence-ratio", "occurrence_ratio", help = "ratio type and value for co-occurrence pattern to hold true: 'global;1.0', 'local;1.0', or 'count;1'")
+@click.option("--occurrence-ratio", "occurrence_ratio_", help = "ratio type and value for co-occurrence pattern to hold true: 'global;1.0', 'local;1.0', or 'count;1'")
 @click.option("--detection-threshold", "detection_threshold_", type = int, default = 1, help = "detection threshold to consider true detection (default: 0)")
 @click.option("--negative", help = "list of negative control samples")
 @click.option("--transpose", "transpose_", is_flag = True, help = "transpose 'frequency-input' to set taxa as rows")

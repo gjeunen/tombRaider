@@ -413,17 +413,17 @@ tombRaider --occurrence-type abundance --detection-threshold 2 ...
 | --- | --- | --- | --- | --- | --- |
 | Seq 1 | 1 | 700 | 600 | 200 | 102 |
 
-#### 5.4.7 --negative
+#### 5.4.7 --exclude
 
-If users wish to do so, negative controls can be omitted from the co-occurrence pattern analysis by specifying the sample names using the `--negative` parameter. Multiple sample names can be provided by using the `+` delimiter. Negative samples can also be identified through pattern searches by adding `*` before and/or after the substring. For example, `NEG*` will remove all sample names starting with `NEG`, while `*NEG` will remove all sample names ending with `NEG`, and `*NEG*` will remove all sample names containing `NEG`. Multiple pattern searches can be combined as follows:
+If users wish to do so, samples such as negative and positive controls, can be omitted from the co-occurrence pattern analysis by specifying the sample names using the `--exclude` parameter. Multiple sample names can be provided by using the `+` delimiter. Samples can also be identified through pattern searches by adding `*` before and/or after the substring. For example, `NEG*` will remove all sample names starting with `NEG`, while `*NEG` will remove all sample names ending with `NEG`, and `*NEG*` will remove all sample names containing `NEG`. Multiple pattern searches can be combined as follows:
 
 ```{code-block} bash
-tombRaider --negative 'ctrBlank+*NEG+Blk*+*Ext*' ...
+tombRaider --exclude 'ctrBlank+*NEG+Blk*+*Ext*' ...
 ```
 
-The argument passed to `--negative` in the example above will remove the sample `ctrBlank`, as well as all samples ending in `NEG`, all samples starting with `Blk`, and all samples containing `Ext` from the co-occurrence pattern analysis. Please note that the specified samples will not be removed in the final count table written to the output file using the `--frequency-output` parameter!
+The argument passed to `--exclude` in the example above will remove the sample `ctrBlank`, as well as all samples ending in `NEG`, all samples starting with `Blk`, and all samples containing `Ext` from the co-occurrence pattern analysis. Please note that the specified samples will not be removed in the final count table written to the output file using the `--frequency-output` parameter!
 
-Let's look at the following example as an illustration for the functionality of `--negative`. Assume the table below to be our count table input file.
+Let's look at the following example as an illustration for the functionality of `--exclude`. Assume the table below to be our count table input file.
 
 | OTU ID | Sample 1 | Sample 2 | Sample 3 | Sample 4 | Sample 5 | NEG 1 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -436,10 +436,10 @@ In our example, `Seq 2` is being analysed as a child of `Seq 1`. With the follow
 tombRaider --occurrence-type abundance ...
 ```
 
-`Seq 2` is rejected as the child of `Seq 1`, since the co-occurrence pattern does not hold true. `Seq 2` is present in `NEG 1`, while `Seq 1` is not detected in `NEG 1`. However, when removing negative controls from the co-occurrence pattern analysis by specifying `--negative 'NEG*'`:
+`Seq 2` is rejected as the child of `Seq 1`, since the co-occurrence pattern does not hold true. `Seq 2` is present in `NEG 1`, while `Seq 1` is not detected in `NEG 1`. However, when removing negative controls from the co-occurrence pattern analysis by specifying `--exclude 'NEG*'`:
 
 ```{code-block} bash
-tombRaider --occurrence-type abundance --negative 'NEG*' ...
+tombRaider --occurrence-type abundance --exclude 'NEG*' ...
 ```
 
 `Seq 2` is accepted as the child of `Seq 1` (assuming the taxonomic ID and sequence similarity thresholds are met), since the `NEG 1` column is now omitted from the co-occurence pattern analysis. While the `NEG 1` column is removed from the co-occurrence pattern analysis, the output file contains all original reads. Hence, the resulting table will look like:
